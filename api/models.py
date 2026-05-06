@@ -13,7 +13,7 @@ auto-generated DB-specific ones.
 from __future__ import annotations
 
 import uuid as uuid_lib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import (
@@ -71,10 +71,19 @@ def _uuid_pk() -> Mapped[uuid_lib.UUID]:
     )
 
 
+def _now_utc() -> datetime:
+    return datetime.now(tz=timezone.utc)
+
+
 def _ts_default() -> Mapped[datetime]:
+    # Python default first → microsecond precision in SQLite (SQLite's
+    # CURRENT_TIMESTAMP is only second precision, which causes confusing
+    # ordering for messages posted within the same second).
+    # server_default kept as a fallback for raw SQL inserts.
     return mapped_column(
         DateTime(timezone=True),
         nullable=False,
+        default=_now_utc,
         server_default=func.current_timestamp(),
     )
 
