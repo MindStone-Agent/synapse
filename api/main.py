@@ -1,11 +1,12 @@
-"""Agora API — Phase 1 stub.
+"""Agora API.
 
-Currently exposes only /v1/healthz so the docker-compose stack can
-verify Caddy → FastAPI proxying end-to-end. Real routes (auth,
-messages, channels, ws) land in subsequent commits.
+Phase 1 surface so far: /v1/healthz, /v1/auth/{me,login,logout}.
+Channels, messages, and WebSocket land in subsequent commits.
 """
 
 from fastapi import FastAPI
+
+from api.routes.auth import router as auth_router
 
 app = FastAPI(
     title="Agora",
@@ -17,3 +18,6 @@ app = FastAPI(
 @app.get("/v1/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "agora", "version": "0.0.1"}
+
+
+app.include_router(auth_router)
