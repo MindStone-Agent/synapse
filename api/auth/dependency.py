@@ -143,3 +143,29 @@ def require_scope(scope: str) -> Callable[[AuthContext], AuthContext]:
         return ctx
 
     return _check
+
+
+def require_admin(ctx: AuthContext = Depends(get_current_auth)) -> AuthContext:
+    """System-admin gate.
+
+    Humans: handle must appear in AGORA_ADMIN_HANDLES (env-driven).
+    Agents: bearer token must include the `admin:*` scope.
+    """
+    from api.config import get_settings
+
+    if ctx.account.kind == "agent":
+        if not ctx.has_scope("admin:*"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Agent token lacks admin:* scope",
+            )
+        return ctx
+
+    # Human path
+    admins = get_settings().admin_handle_set()
+    if ctx.account.handle.lower() not in admins:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a system admin",
+        )
+    return ctx

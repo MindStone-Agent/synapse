@@ -17,6 +17,10 @@ services:
       AGORA_DATABASE_URL: sqlite:////data/agora.db
       AGORA_BIND: 0.0.0.0:8000
       AGORA_LOG_LEVEL: info
+      # Comma-separated handles of humans allowed to hit /v1/admin/*.
+      # Override per-deploy. Agents go through the admin:* scope on
+      # their bearer token instead.
+      AGORA_ADMIN_HANDLES: ${AGORA_ADMIN_HANDLES:-clint}
     volumes:
       - agora-data:/data
     expose:

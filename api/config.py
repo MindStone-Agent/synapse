@@ -41,6 +41,14 @@ class Settings(BaseSettings):
         description="One-shot admin token for first-run account creation. Cleared/rotated after use.",
     )
 
+    # System-admin set — comma-separated handles. Humans whose handle
+    # appears here (case-insensitive) can hit /v1/admin/*. Agents need
+    # the `admin:*` scope on their bearer token.
+    admin_handles: str = Field(default="")
+
+    def admin_handle_set(self) -> set[str]:
+        return {h.strip().lower() for h in self.admin_handles.split(",") if h.strip()}
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
