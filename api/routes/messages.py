@@ -46,7 +46,8 @@ class MessageOut(BaseModel):
 
 class MessagesPage(BaseModel):
     messages: list[MessageOut]
-    next_cursor: str | None  # cursor to pass as `since` for the next poll
+    next_cursor: str | None  # forward-pagination cursor; semantics depend on `order`
+    head_cursor: str | None  # cursor of the newest message in the result; pass as `since` to poll forward
 
 
 class PostMessageBody(BaseModel):
@@ -66,6 +67,11 @@ def list_messages(
     since: str | None = Query(default=None, description="Opaque cursor from a previous response"),
     mentions_me: bool = Query(default=False, description="Filter to messages mentioning me"),
     limit: int = Query(default=50, ge=1, le=200),
+    order: str = Query(
+        default="asc",
+        pattern="^(asc|desc)$",
+        description="asc for cursor polling (oldest first); desc for chat-style 'latest N' initial loads",
+    ),
     ctx: AuthContext = Depends(get_current_auth),
     db: Session = Depends(get_session),
 ) -> MessagesPage:
@@ -97,7 +103,12 @@ def list_messages(
             Mention.account_id == ctx.account.id
         )
 
-    stmt = stmt.order_by(Message.created_at, Message.id).limit(limit + 1)
+    if order == "desc":
+        # "Latest N first" — for chat initial loads. Reverse client-side
+        # if you want to render oldest-at-top.
+        stmt = stmt.order_by(Message.created_at.desc(), Message.id.desc()).limit(limit + 1)
+    else:
+        stmt = stmt.order_by(Message.created_at, Message.id).limit(limit + 1)
 
     rows = db.execute(stmt).scalars().all()
     has_more = len(rows) > limit
@@ -143,12 +154,18 @@ def list_messages(
         )
 
     next_cursor: str | None = None
-    if has_more or page:
-        last = page[-1] if page else None
-        if has_more and last is not None:
-            next_cursor = encode_cursor(last.created_at, last.id)
+    if has_more and page:
+        last = page[-1]
+        next_cursor = encode_cursor(last.created_at, last.id)
 
-    return MessagesPage(messages=out, next_cursor=next_cursor)
+    # head_cursor = cursor of the newest message returned (regardless of order),
+    # so a client can pass it as `since` to fetch what's been written since.
+    head_cursor: str | None = None
+    if page:
+        newest = max(page, key=lambda m: (m.created_at, m.id))
+        head_cursor = encode_cursor(newest.created_at, newest.id)
+
+    return MessagesPage(messages=out, next_cursor=next_cursor, head_cursor=head_cursor)
 
 
 @router.post("", response_model=MessageOut, status_code=status.HTTP_201_CREATED)

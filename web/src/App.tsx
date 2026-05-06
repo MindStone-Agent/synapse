@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/AppLayout'
 import { RequireAuth } from './components/RequireAuth'
+import { ChannelPage } from './pages/ChannelPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 
@@ -18,7 +19,7 @@ function App() {
           }
         >
           <Route index element={<HomePage />} />
-          {/* /channels/:slug lands in milestone B */}
+          <Route path="channels/:slug" element={<ChannelPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
