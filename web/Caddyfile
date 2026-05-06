@@ -1,0 +1,48 @@
+# Agora — Caddy reverse proxy + static asset server.
+#
+# In dev (docker-compose.yml):
+#   - Listens on :8080 (no TLS)
+#   - Serves React build from /srv (mounted as a Docker volume from the
+#     web-builder image's dist output)
+#   - Proxies /v1/* and /v1/ws to the FastAPI container at api:8000
+#
+# In prod (docker-compose.prod.yml overlay):
+#   - Listens on :443 with auto-cert via Let's Encrypt
+#   - Otherwise identical routing
+
+{
+    auto_https off
+    admin off
+}
+
+:8080 {
+    encode gzip zstd
+
+    # WebSocket: must come before the generic /v1/* catch-all
+    @websocket {
+        path /v1/ws
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    handle @websocket {
+        reverse_proxy api:8000
+    }
+
+    # REST API — preserve the /v1 prefix so API routes are
+    # path-consistent whether reached via Caddy or directly.
+    handle /v1/* {
+        reverse_proxy api:8000
+    }
+
+    # Static React build — fallback to index.html for SPA routes
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

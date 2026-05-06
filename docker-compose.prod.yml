@@ -1,0 +1,31 @@
+# Agora — production overlay.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Adds:
+#   - TLS auto-cert via Let's Encrypt (Caddy)
+#   - Persisted Caddy data + config volumes
+#   - Restart policy hardening
+#   - AGORA_BASE_URL env var so the API knows its public origin
+
+services:
+  api:
+    environment:
+      AGORA_BASE_URL: ${AGORA_BASE_URL}
+    restart: always
+
+  web:
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      AGORA_DOMAIN: ${AGORA_DOMAIN}
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: always
+
+volumes:
+  caddy-data:
+  caddy-config:

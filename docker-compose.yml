@@ -1,0 +1,45 @@
+# Agora — local / dev compose stack.
+#
+# Two services:
+#   - api:    FastAPI + uvicorn (Python container)
+#   - web:    Caddy reverse proxy + React static build
+#
+# Production overlay (docker-compose.prod.yml) flips Caddy to :443 with
+# auto-TLS via Let's Encrypt.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agora-api:dev
+    environment:
+      AGORA_DATABASE_URL: sqlite:////data/agora.db
+      AGORA_BIND: 0.0.0.0:8000
+      AGORA_LOG_LEVEL: info
+    volumes:
+      - agora-data:/data
+    expose:
+      - "8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/healthz').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: agora-web:dev
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  agora-data:
