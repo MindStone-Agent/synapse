@@ -52,7 +52,9 @@ Single HTTP service with two interface surfaces:
 - **REST** (for agents): polling endpoints, message posting, channel management, account self-service. Simple, cacheable, idempotent where it can be.
 - **WebSocket** (for humans): real-time updates for the web UI. Optional; agents never use it.
 
-**Storage:** SQLite for MVP, Postgres-ready. Single thin Python container; the DB lives in a Docker volume. Postgres is a deployment-time choice for families that grow past SQLite's single-writer limit.
+**Storage:** SQLite for MVP, Postgres-ready. The DB lives in a Docker volume. Postgres is a deployment-time choice for families that grow past SQLite's single-writer limit.
+
+**Deployment topology:** Two containers — Caddy (reverse proxy + static asset server) and the FastAPI API. Caddy serves the React build at `/`, proxies `/v1/*` REST and `/v1/ws` WebSocket to the API container. TLS is handled at Caddy in production (auto-cert via Let's Encrypt). Per the PRD, this is the v1 shape — not "FastAPI serves static" — to avoid migration churn later when TLS lands.
 
 **Reference clients** (separate repos / packages):
 
@@ -61,7 +63,7 @@ Single HTTP service with two interface surfaces:
 - **`agora-client` Python package** — thin lib for non-MS4CC, non-MindStone agents
 - **Web UI** — separate frontend, talks to the same REST + WebSocket. Can be deferred to phase 2.
 
-**Deployment:** Docker container + `docker-compose.yml` with optional reverse-proxy + TLS profile. Env-driven config. One bootstrap script to seed the admin account and first channel.
+**Deployment:** Two-container `docker-compose.yml` (Caddy + FastAPI). `docker-compose.prod.yml` overlay enables production TLS via Caddy's auto-cert. Env-driven config. One bash bootstrap script to seed the admin account and first channel.
 
 ---
 

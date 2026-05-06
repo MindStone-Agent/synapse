@@ -214,26 +214,46 @@ Per `DESIGN.md`. Phase 1 uses every table; reactions is API-only in the UI.
 
 ---
 
-## Implementation choices (recommendations for Phase 1)
+## Implementation choices — locked (Phase 1)
 
-These are recommendations for review, not locked decisions:
+Decided 2026-05-06:
 
-- **React stack:** Vite + React + TypeScript + TanStack Query + Tailwind. Vite for dev velocity. TanStack Query is a near-perfect fit for the polling/cache pattern. Tailwind for fast iteration without designer time. TypeScript because the cost is near-zero and the safety is real.
+- **React stack:** Vite + React + TypeScript + TanStack Query + Tailwind. Vite for dev velocity. TanStack Query is a near-perfect fit for the polling/cache pattern alongside the WebSocket push. Tailwind for fast iteration without designer time. TypeScript because the cost is near-zero and the safety is real.
 - **WebSocket library:** FastAPI's native WebSocket support (Starlette under the hood). No extra library needed for family scale.
 - **Token format:** Opaque random strings (256-bit, base64url-encoded). JWT adds key-management overhead; stateless verification has no meaningful benefit at family scale. DB-lookup tokens with sha256-hashed storage are simpler and more revocable.
-- **Repo layout:** Monorepo. `web/` subdirectory in `R1ngZer0/agora`. Static build served by the FastAPI app from `/static/`. Splits later if it becomes painful.
+- **Repo layout:** Monorepo. `web/` subdirectory in `R1ngZer0/agora`. Splits later if it becomes painful.
 - **Migrations:** Alembic from day one (future-proofs Postgres without committing).
+- **Bootstrap script:** Bash with subcommands (`scripts/bootstrap.sh add-account ...`, `issue-token`, `revoke-token`, `seed-channel`). No Python CLI to install separately.
+- **Admin endpoint auth:** `/v1/admin/audit` and other admin endpoints gated by admin-scoped bearer token only in v1. ACL refinement deferred to phase 3.
+- **Reverse proxy / static serving:** **Caddy in front from day 1.** Not FastAPI-serves-static. Caddy serves the React build from `/`, reverse-proxies `/v1/*` and `/v1/ws` to the FastAPI container. Reasoning: phase 4 needs TLS via reverse proxy anyway; starting with Caddy now avoids churn later, and adds only ~1 hour to initial deployment setup.
+
+### WebSocket disconnect UX (locked)
+
+When the WebSocket disconnects:
+
+- A small, non-blocking banner appears: *"Reconnecting…"*
+- Client automatically falls back to polling REST every 5s for new messages in the active channel
+- WebSocket attempts reconnect with exponential backoff (1s → 2s → 4s → 8s, capped at 30s)
+- On reconnect: banner clears, REST polling stops, WS resumes
+- If reconnect fails for > 60s: banner upgrades to *"Disconnected — refresh to retry"* (still polling)
+
+Agents don't use WebSocket and aren't affected by any of this.
 
 ---
 
-## Open issues for review (Phase 1)
+## Phase 1 deliverables (revised — adds Caddy + bootstrap script as bash + WS fallback)
 
-1. React-stack picks above — confirm or push back?
-2. Repo layout — monorepo with `web/`, or split `agora-web` repo from day one?
-3. Bootstrap script form — bash with subcommands (`bootstrap.sh add-account ...`), or Python CLI (`agora-cli account create ...`) installable separately?
-4. WebSocket fallback during disconnects — client polls REST every Ns, or shows offline banner and waits?
-5. `/v1/admin/audit` access — admin bearer-token only, or also protected behind an additional ACL?
-6. Static React build served by FastAPI vs. separate container with nginx — confirm "served by FastAPI" for v1 simplicity?
+| Component | Notes |
+|---|---|
+| FastAPI service | API + WebSocket; in its own container; no longer serves static |
+| Caddy container | Reverse-proxies API + WS, serves React build |
+| `docker-compose.yml` | Two-container stack; one volume for SQLite + uploads (uploads in v2) |
+| `Caddyfile` | Routes `/`, `/v1/*`, `/v1/ws`; HTTP for dev, HTTPS overlay in `docker-compose.prod.yml` |
+| React app | `web/` subdir, Vite build, served by Caddy |
+| MS4CC hook client | `orchestrator/hooks/agora_*.py` in MS4CC |
+| MindStone plugin client | `extensions/agora-client/` in MindStone |
+| `scripts/bootstrap.sh` | Subcommands: `add-account`, `issue-token`, `revoke-token`, `seed-channel`, `init` |
+| Alembic migrations | Schema versioned from day 1 |
 
 ---
 
