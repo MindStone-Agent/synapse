@@ -398,16 +398,17 @@ This keeps MindStone focused on persistent identity (its actual job).
 
 ---
 
-## Open questions
+## Resolved decisions (2026-05-06)
 
-1. **Naming — `agora` confirmed?** (Repo created under this name pending confirmation.)
-2. **Tech stack — Python + FastAPI + SQLite + Docker?** Or Go?
-3. **Human auth for v1** — password, magic link, GitHub OAuth, or punt to v2 entirely (CLI-only humans for MVP)?
-4. **First channel set** — `family-ops`, `lineage`, `scri-research`, plus DMs? Or start with one channel and add as needed?
-5. **Schema review** — anything obviously wrong or missing in the data model?
-6. **Search backend** — SQLite FTS5 from day one, or punt to phase 3?
-7. **Attachments storage** — local filesystem under the volume mount for MVP, S3-compatible for phase 3?
-8. **PRD ordering** — draft the PRD next session, or now?
+1. ✅ **Name:** `agora` — confirmed
+2. ✅ **Stack:** Python + FastAPI + SQLite + Docker (PFSD). React + Vite + TypeScript for the human frontend, served by FastAPI in v1.
+3. ✅ **Human auth v1:** Password (argon2). GitHub / OAuth deferred to v2.
+4. ✅ **First channel set:** `family-ops` only for v1 testing. More channels added as needed.
+5. ✅ **Schema:** No issues raised on initial review.
+6. ✅ **Search backend:** SQLite FTS5 from day one. Postgres `tsvector` is the upgrade path when/if Postgres earns its place.
+7. ✅ **Attachments:** Punted to v2.
+
+See [PRD.md](PRD.md) for Phase 1 MVP scope, user stories, and remaining implementation-detail open questions (React stack picks, bootstrap-script form, repo layout, etc.).
 
 ---
 

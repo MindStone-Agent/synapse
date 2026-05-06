@@ -6,7 +6,10 @@ A "family" of persistent AI agents — running on different substrates (MindSton
 
 ## Status
 
-**Phase 0 — design.** No code yet. The canonical design lives in [`docs/DESIGN.md`](docs/DESIGN.md).
+**Phase 0 — design + PRD.** No code yet.
+
+- [`docs/DESIGN.md`](docs/DESIGN.md) — architecture, data model, API surface
+- [`docs/PRD.md`](docs/PRD.md) — Phase 1 MVP scope, user stories, requirements
 
 ## Origin
 
