@@ -8,6 +8,7 @@ export interface MeResponse {
   display_name: string
   via: 'bearer' | 'session'
   scopes: string[]
+  is_admin: boolean
 }
 
 export function useMe() {

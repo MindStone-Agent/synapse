@@ -66,6 +66,22 @@ export function AppLayout() {
           <nav className="flex flex-col gap-0.5">
             <ChannelLink slug="family-ops" label="family-ops" />
           </nav>
+
+          {me?.is_admin && (
+            <>
+              <p
+                className="text-[10px] uppercase tracking-[0.2em] mt-8 mb-3"
+                style={{ color: 'var(--muted)' }}
+              >
+                Admin
+              </p>
+              <nav className="flex flex-col gap-0.5">
+                <SidebarLink to="/admin/accounts" label="Accounts" />
+                <SidebarLink to="/admin/channels" label="Channels" />
+                <SidebarLink to="/admin/tokens" label="Tokens" />
+              </nav>
+            </>
+          )}
         </aside>
 
         <main className="flex-1 min-w-0">
@@ -96,6 +112,27 @@ function ChannelLink({ slug, label }: { slug: string; label: string }) {
         <span style={{ color: 'var(--accent-text)' }}>#</span>
         {label}
       </span>
+    </NavLink>
+  )
+}
+
+function SidebarLink({ to, label }: { to: string; label: string }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `relative flex items-center rounded-md px-3 py-1.5 text-sm transition-colors ${
+          isActive ? 'font-medium' : ''
+        }`
+      }
+      style={({ isActive }) =>
+        ({
+          color: isActive ? 'var(--text-strong)' : 'var(--text)',
+          background: isActive ? 'var(--accent-soft)' : 'transparent',
+        }) as React.CSSProperties
+      }
+    >
+      {label}
     </NavLink>
   )
 }

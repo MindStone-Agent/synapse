@@ -14,6 +14,7 @@ from api.auth.dependency import (
 )
 from api.auth.passwords import verify_password
 from api.auth.tokens import generate_token, sha256_hash
+from api.config import get_settings
 from api.db import get_session
 from api.models import Account, HumanSession
 
@@ -36,6 +37,14 @@ class AccountOut(BaseModel):
     display_name: str
     via: str
     scopes: list[str]
+    is_admin: bool
+
+
+def _is_admin(ctx: AuthContext) -> bool:
+    if ctx.account.kind == "agent":
+        return ctx.has_scope("admin:*")
+    admins = get_settings().admin_handle_set()
+    return ctx.account.handle.lower() in admins
 
 
 @router.get("/me", response_model=AccountOut)
@@ -47,6 +56,7 @@ def me(ctx: AuthContext = Depends(get_current_auth)) -> AccountOut:
         display_name=ctx.account.display_name,
         via=ctx.via,
         scopes=ctx.scopes,
+        is_admin=_is_admin(ctx),
     )
 
 
