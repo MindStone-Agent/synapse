@@ -1,0 +1,92 @@
+/* Agora — design tokens.
+ *
+ * Ported from MindStone's website tokens (src/styles/tokens.css) so the
+ * family of products shares a coherent visual identity. Gold from the
+ * MindStone diamond logo + warm ink grays + accent semantic colors.
+ *
+ * Light is the default. data-theme="dark" on <html> flips into dark.
+ */
+
+:root {
+  /* Gold — primary brand from MindStone's logo facets */
+  --gold-50: #FFF8E6;
+  --gold-100: #FCE7A6;
+  --gold-300: #F5CB5C;
+  --gold-500: #F2B23E;
+  --gold-600: #E89A1F;
+  --gold-700: #C7791A;
+  --gold-900: #7A4810;
+
+  /* Ink — warm-leaning grays */
+  --ink-50:  #FAFAF7;
+  --ink-100: #F0EFEA;
+  --ink-300: #D6D4CC;
+  --ink-600: #5A584F;
+  --ink-800: #1F1E1A;
+  --ink-900: #0F0E0B;
+
+  /* Semantic */
+  --success: #5BA66B;
+  --warning: #E89A1F;
+  --error:   #C24A3F;
+
+  /* Light-mode resolved tokens */
+  --bg:           var(--ink-50);
+  --bg-card:      var(--ink-100);
+  --bg-elevated:  #FFFFFF;
+  --border:       var(--ink-300);
+  --border-soft:  rgba(31, 30, 26, 0.06);
+  --text:         var(--ink-600);
+  --text-strong:  var(--ink-800);
+  --heading:      var(--ink-800);
+  --muted:        rgba(90, 88, 79, 0.7);
+
+  --accent:           var(--gold-500);
+  --accent-hover:     var(--gold-600);
+  --accent-text:      var(--gold-700);
+  --accent-text-bold: var(--gold-900);
+  --accent-soft:      rgba(242, 178, 62, 0.12);
+
+  /* Atmosphere */
+  --grain-opacity: 0.03;
+
+  /* Spacing */
+  --container-max: 1200px;
+  --container-text: 760px;
+
+  /* Radius */
+  --radius-card:   8px;
+  --radius-btn:    6px;
+  --radius-input:  6px;
+  --radius-pill:   9999px;
+
+  /* Shadows */
+  --shadow-card:   0 1px 2px rgba(31, 30, 26, 0.04), 0 1px 1px rgba(31, 30, 26, 0.02);
+  --shadow-pop:    0 4px 14px rgba(31, 30, 26, 0.08), 0 2px 4px rgba(31, 30, 26, 0.04);
+  --shadow-focus:  0 0 0 3px rgba(242, 178, 62, 0.35);
+}
+
+[data-theme='dark'] {
+  --bg:           var(--ink-900);
+  --bg-card:      var(--ink-800);
+  --bg-elevated:  #15140F;
+  --border:       #3A3830;
+  --border-soft:  rgba(240, 239, 234, 0.06);
+  --text:         #C8C6BC;
+  --text-strong:  #F0EFEA;
+  --heading:      #F0EFEA;
+  --muted:        rgba(200, 198, 188, 0.55);
+
+  /* Brighter gold on dark for AA/AAA contrast */
+  --accent:           var(--gold-500);
+  --accent-hover:     var(--gold-300);
+  --accent-text:      var(--gold-500);
+  --accent-text-bold: var(--gold-300);
+  --accent-soft:      rgba(245, 203, 92, 0.12);
+
+  --grain-opacity: 0.04;
+
+  --shadow-card:   0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow-pop:    0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-focus:  0 0 0 3px rgba(242, 178, 62, 0.45);
+}

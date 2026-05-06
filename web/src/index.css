@@ -1,1 +1,127 @@
+/* Self-host font weights/styles we actually use. Variable fonts give
+ * us the full range from a single file each. */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/jetbrains-mono";
+
+@import "./styles/tokens.css";
 @import "tailwindcss";
+
+/* Tailwind v4: bind dark: utilities to data-theme="dark" so the
+ * manual toggle drives them, not OS-only. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Tailwind v4 theme — surface our tokens as Tailwind utilities. */
+@theme {
+  --color-gold-50:  var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-300: var(--gold-300);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+  --color-gold-700: var(--gold-700);
+  --color-gold-900: var(--gold-900);
+
+  --color-ink-50:  var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-300: var(--ink-300);
+  --color-ink-600: var(--ink-600);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+
+  --color-bg:       var(--bg);
+  --color-card:     var(--bg-card);
+  --color-elevated: var(--bg-elevated);
+  --color-border:   var(--border);
+  --color-text:     var(--text);
+  --color-strong:   var(--text-strong);
+  --color-heading:  var(--heading);
+  --color-muted:    var(--muted);
+  --color-accent:   var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text:  var(--accent-text);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error:   var(--error);
+
+  --font-sans:    'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-mono:    'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --radius-card:  8px;
+  --radius-btn:   6px;
+  --radius-input: 6px;
+}
+
+/* Base reset + body defaults */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+}
+
+/* Editorial-flavor headings */
+h1, h2, h3, .display {
+  font-family: 'Fraunces Variable', ui-serif, Georgia, serif;
+  color: var(--heading);
+  font-feature-settings: 'ss01' 1;
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+}
+
+/* Selection + focus */
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-btn);
+}
+
+/* Subtle film-grain backdrop — light, not noisy. Only renders on the body. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+}
+
+/* Decorative gold separator: <hr class="rule" /> or .rule on a div */
+.rule {
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--accent) 30%,
+    var(--accent) 70%,
+    transparent 100%
+  );
+  opacity: 0.45;
+}
