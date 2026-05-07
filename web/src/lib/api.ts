@@ -1,5 +1,5 @@
 /* Thin fetch wrapper. All API responses are JSON. Cookies (the
- * agora_session cookie set by /v1/auth/login) ride on credentials:
+ * synapse_session cookie set by /v1/auth/login) ride on credentials:
  * 'include' for same-origin same-domain dev + prod through Caddy. */
 
 export class ApiError extends Error {

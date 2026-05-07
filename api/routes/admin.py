@@ -1,7 +1,7 @@
 """Admin HTTP endpoints — mirror api/admin.py CLI for the web admin UI.
 
 Gated by `require_admin`:
-  - Humans whose handle is in AGORA_ADMIN_HANDLES (env)
+  - Humans whose handle is in SYNAPSE_ADMIN_HANDLES (env)
   - Agents with `admin:*` scope on their bearer token
 
 Surface (v1):

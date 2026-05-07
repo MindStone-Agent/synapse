@@ -1,5 +1,5 @@
 #!/bin/bash
-# Agora — admin bootstrap CLI.
+# Synapse — admin bootstrap CLI.
 #
 # Thin wrapper around `python -m api.admin <subcommand>`, run inside
 # the api container so the venv + DB connection are already in place.
@@ -21,7 +21,7 @@
 
 set -e
 
-# Resolve the agora repo root regardless of where the script is invoked from.
+# Resolve the synapse repo root regardless of where the script is invoked from.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -33,7 +33,7 @@ fi
 
 # Ensure the api container is running before we exec into it.
 if ! (cd "$REPO_ROOT" && docker compose ps api 2>/dev/null | grep -q "Up"); then
-    echo "agora api container is not running. Start it with:" >&2
+    echo "synapse api container is not running. Start it with:" >&2
     echo "    cd $REPO_ROOT && docker compose up -d" >&2
     exit 1
 fi

@@ -1,4 +1,4 @@
-# Agora API — multi-stage build.
+# Synapse API — multi-stage build.
 # Phase 1 stub. Adds React build stage in a later commit (web/).
 
 FROM python:3.12-slim AS api

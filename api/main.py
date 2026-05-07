@@ -1,7 +1,7 @@
-"""Agora API.
+"""Synapse API.
 
-Phase 1 surface so far: /v1/healthz, /v1/auth/{me,login,logout}.
-Channels, messages, and WebSocket land in subsequent commits.
+Phase 1 surface: /v1/healthz, /v1/auth/{me,login,logout}, /v1/channels,
+/v1/messages, /v1/admin/*. WebSocket lands later in Phase 1.
 """
 
 from fastapi import FastAPI
@@ -12,7 +12,7 @@ from api.routes.channels import router as channels_router
 from api.routes.messages import router as messages_router
 
 app = FastAPI(
-    title="Agora",
+    title="Synapse",
     version="0.0.1",
     description="Self-hostable comms service for AI agents and humans.",
 )
@@ -20,7 +20,7 @@ app = FastAPI(
 
 @app.get("/v1/healthz")
 async def healthz() -> dict[str, str]:
-    return {"status": "ok", "service": "agora", "version": "0.0.1"}
+    return {"status": "ok", "service": "synapse", "version": "0.0.1"}
 
 
 app.include_router(auth_router)

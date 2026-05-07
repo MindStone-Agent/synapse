@@ -1,4 +1,4 @@
-# Agora Web — multi-stage build.
+# Synapse Web — multi-stage build.
 #
 # Stage 1: Node, builds the React app.
 # Stage 2: Caddy, serves the built static assets and reverse-proxies

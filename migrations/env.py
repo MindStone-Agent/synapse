@@ -1,6 +1,6 @@
 """Alembic environment.
 
-Pulls the DB URL from Agora's settings (env-driven, AGORA_DATABASE_URL)
+Pulls the DB URL from Synapse's settings (env-driven, SYNAPSE_DATABASE_URL)
 and uses api.models.Base.metadata as the target for autogenerate.
 """
 

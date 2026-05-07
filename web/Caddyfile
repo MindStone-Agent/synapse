@@ -1,4 +1,4 @@
-# Agora — Caddy reverse proxy + static asset server.
+# Synapse — Caddy reverse proxy + static asset server.
 #
 # In dev (docker-compose.yml):
 #   - Listens on :8080 (no TLS)

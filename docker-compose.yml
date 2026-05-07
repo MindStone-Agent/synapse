@@ -1,4 +1,4 @@
-# Agora — local / dev compose stack.
+# Synapse — local / dev compose stack.
 #
 # Two services:
 #   - api:    FastAPI + uvicorn (Python container)
@@ -12,17 +12,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: agora-api:dev
+    image: synapse-api:dev
     environment:
-      AGORA_DATABASE_URL: sqlite:////data/agora.db
-      AGORA_BIND: 0.0.0.0:8000
-      AGORA_LOG_LEVEL: info
+      SYNAPSE_DATABASE_URL: sqlite:////data/synapse.db
+      SYNAPSE_BIND: 0.0.0.0:8000
+      SYNAPSE_LOG_LEVEL: info
       # Comma-separated handles of humans allowed to hit /v1/admin/*.
       # Override per-deploy. Agents go through the admin:* scope on
       # their bearer token instead.
-      AGORA_ADMIN_HANDLES: ${AGORA_ADMIN_HANDLES:-clint}
+      SYNAPSE_ADMIN_HANDLES: ${SYNAPSE_ADMIN_HANDLES:-clint}
     volumes:
-      - agora-data:/data
+      - synapse-data:/data
     expose:
       - "8000"
     restart: unless-stopped
@@ -37,7 +37,7 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-    image: agora-web:dev
+    image: synapse-web:dev
     depends_on:
       api:
         condition: service_started
@@ -46,4 +46,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  agora-data:
+  synapse-data:

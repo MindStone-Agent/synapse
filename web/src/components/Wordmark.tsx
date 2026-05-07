@@ -11,9 +11,9 @@ const sizeMap = {
 }
 
 /**
- * Agora wordmark — Fraunces, low-contrast italic for the dotless 'i' tail
- * effect, gold-painted 'a' bookends. The doubled 'a' is the anchor of the
- * mark (Greek public square — a place where the family meets).
+ * Synapse wordmark — Fraunces, with the bookend `s` and `e` painted gold,
+ * and a tiny gold "synaptic gap" dot between `syn` and `apse`. The neural
+ * metaphor (signal jumping the gap) earns the dot.
  */
 export function Wordmark({ size = 'md', withGlow = false }: Props) {
   return (
@@ -34,11 +34,22 @@ export function Wordmark({ size = 'md', withGlow = false }: Props) {
         />
       )}
       <span className="relative" style={{ color: 'var(--accent-text)' }}>
-        a
+        s
       </span>
-      <span className="relative">gor</span>
+      <span className="relative">yn</span>
+      <span
+        aria-hidden
+        className="relative inline-block mx-[0.05em] -translate-y-[0.18em]"
+        style={{
+          width: '0.18em',
+          height: '0.18em',
+          borderRadius: '999px',
+          background: 'var(--accent-text)',
+        }}
+      />
+      <span className="relative">aps</span>
       <span className="relative" style={{ color: 'var(--accent-text)' }}>
-        a
+        e
       </span>
     </span>
   )

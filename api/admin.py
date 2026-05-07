@@ -16,7 +16,7 @@ Subcommands:
     list-channels           list all channels
     list-tokens             list tokens for an agent (no raw values; only metadata)
 
-All commands operate against the engine configured by AGORA_DATABASE_URL.
+All commands operate against the engine configured by SYNAPSE_DATABASE_URL.
 """
 
 from __future__ import annotations
@@ -286,7 +286,7 @@ def cmd_list_tokens(args: argparse.Namespace) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="agora-admin", description="Agora admin CLI")
+    p = argparse.ArgumentParser(prog="synapse-admin", description="Synapse admin CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("init", help="Run alembic upgrade head explicitly").set_defaults(

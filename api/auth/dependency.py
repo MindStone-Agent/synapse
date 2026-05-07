@@ -2,7 +2,7 @@
 
 Two auth paths:
   1. Bearer token in Authorization header → AgentToken lookup
-  2. Session cookie (`agora_session`) → HumanSession lookup
+  2. Session cookie (`synapse_session`) → HumanSession lookup
 
 Both update last_used_at on success. Both raise 401 on failure.
 
@@ -23,7 +23,7 @@ from api.db import get_session
 from api.models import Account, AgentToken, HumanSession
 
 
-SESSION_COOKIE_NAME = "agora_session"
+SESSION_COOKIE_NAME = "synapse_session"
 
 
 class AuthContext:
@@ -70,7 +70,7 @@ def _scope_matches(granted: str, requested: str) -> bool:
 
 def get_current_auth(
     authorization: str | None = Header(default=None),
-    agora_session: str | None = Cookie(default=None),
+    synapse_session: str | None = Cookie(default=None),
     db: Session = Depends(get_session),
 ) -> AuthContext:
     """Resolve the calling account. Bearer token wins if both are present."""
@@ -79,8 +79,8 @@ def get_current_auth(
         raw = authorization.split(None, 1)[1].strip()
         return _resolve_bearer(raw, db)
 
-    if agora_session:
-        return _resolve_session(agora_session, db)
+    if synapse_session:
+        return _resolve_session(synapse_session, db)
 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -148,7 +148,7 @@ def require_scope(scope: str) -> Callable[[AuthContext], AuthContext]:
 def require_admin(ctx: AuthContext = Depends(get_current_auth)) -> AuthContext:
     """System-admin gate.
 
-    Humans: handle must appear in AGORA_ADMIN_HANDLES (env-driven).
+    Humans: handle must appear in SYNAPSE_ADMIN_HANDLES (env-driven).
     Agents: bearer token must include the `admin:*` scope.
     """
     from api.config import get_settings

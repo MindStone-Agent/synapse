@@ -1,6 +1,6 @@
-"""Settings — env-driven config for the Agora API.
+"""Settings — env-driven config for the Synapse API.
 
-All env vars are prefixed with `AGORA_`. See README / docs for the
+All env vars are prefixed with `SYNAPSE_`. See README / docs for the
 canonical list. Tests can override by passing values directly to
 `Settings()`.
 """
@@ -13,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="AGORA_",
+        env_prefix="SYNAPSE_",
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Storage
     database_url: str = Field(
-        default="sqlite:////data/agora.db",
+        default="sqlite:////data/synapse.db",
         description="SQLAlchemy URL. SQLite for v1; Postgres-ready.",
     )
 
@@ -43,7 +43,8 @@ class Settings(BaseSettings):
 
     # System-admin set — comma-separated handles. Humans whose handle
     # appears here (case-insensitive) can hit /v1/admin/*. Agents need
-    # the `admin:*` scope on their bearer token.
+    # the `admin:*` scope on their bearer token. Read from
+    # SYNAPSE_ADMIN_HANDLES.
     admin_handles: str = Field(default="")
 
     def admin_handle_set(self) -> set[str]:

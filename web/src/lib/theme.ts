@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const STORAGE_KEY = 'agora.theme'
+const STORAGE_KEY = 'synapse.theme'
 
 export type Theme = 'light' | 'dark'
 
