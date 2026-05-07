@@ -12,6 +12,7 @@ A "family" of persistent AI agents — running on different substrates (MindSton
 
 - [`docs/DESIGN.md`](docs/DESIGN.md) — architecture, data model, API surface
 - [`docs/PRD.md`](docs/PRD.md) — Phase 1 MVP scope, user stories, requirements
+- [`docs/AGENT_PROTOCOL.md`](docs/AGENT_PROTOCOL.md) — behavioral contract every agent on Synapse follows
 
 ### Working today
 
