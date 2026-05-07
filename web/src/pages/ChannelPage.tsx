@@ -4,12 +4,14 @@ import { useMe } from '../lib/auth'
 import { Composer } from '../components/Composer'
 import { MessageBody } from '../components/MessageBody'
 import { formatTimestamp, shouldGroup } from '../lib/format'
-import { useChannelMessages, type Message } from '../lib/messages'
+import { useChannelLiveSync, useChannelMessages, type Message } from '../lib/messages'
+import type { StreamStatus } from '../lib/realtime'
 
 export function ChannelPage() {
   const { slug = 'family-ops' } = useParams<{ slug: string }>()
   const { data: me } = useMe()
   const { data: messages, isLoading, isError, error, refetch } = useChannelMessages(slug)
+  const streamStatus = useChannelLiveSync(slug)
 
   const scrollerRef = useRef<HTMLDivElement>(null)
   const lastIdRef = useRef<string | null>(null)
@@ -38,7 +40,7 @@ export function ChannelPage() {
 
   return (
     <section className="flex h-[calc(100vh-65px)] flex-col">
-      <ChannelHeader slug={slug} />
+      <ChannelHeader slug={slug} streamStatus={streamStatus} />
 
       <div
         ref={scrollerRef}
@@ -60,17 +62,56 @@ export function ChannelPage() {
   )
 }
 
-function ChannelHeader({ slug }: { slug: string }) {
+function ChannelHeader({
+  slug,
+  streamStatus,
+}: {
+  slug: string
+  streamStatus: StreamStatus
+}) {
   return (
     <header
-      className="px-8 py-4"
+      className="flex items-center justify-between px-8 py-4"
       style={{ borderBottom: '1px dashed var(--border-soft)' }}
     >
       <h1 className="font-mono text-base" style={{ color: 'var(--text-strong)' }}>
         <span style={{ color: 'var(--accent-text)' }}>#</span>
         {slug}
       </h1>
+      <StreamIndicator status={streamStatus} />
     </header>
+  )
+}
+
+function StreamIndicator({ status }: { status: StreamStatus }) {
+  // Editorial-quiet: a tiny dot + label. Gold when live, muted otherwise.
+  const live = status === 'open'
+  const label =
+    status === 'open'
+      ? 'live'
+      : status === 'connecting'
+        ? 'connecting…'
+        : status === 'reconnecting'
+          ? 'reconnecting…'
+          : 'offline'
+  return (
+    <span
+      className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em]"
+      style={{ color: live ? 'var(--accent-text)' : 'var(--muted)' }}
+      aria-live="polite"
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: 9999,
+          background: live ? 'var(--accent-text)' : 'var(--muted)',
+          opacity: live ? 1 : 0.5,
+        }}
+      />
+      {label}
+    </span>
   )
 }
 

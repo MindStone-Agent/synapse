@@ -1,5 +1,7 @@
+import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
+import { useChannelStream, type StreamEvent, type StreamStatus } from './realtime'
 
 export interface Message {
   id: string
@@ -29,14 +31,16 @@ export interface Member {
   role: 'admin' | 'member' | 'read_only'
 }
 
-const POLL_INTERVAL_MS = 5_000
+// Safety-net poll. Real-time arrives via WebSocket; this catches any
+// fan-out we missed during a brief disconnect or hub overflow.
+const POLL_INTERVAL_MS = 30_000
 
 /**
- * Channel messages — refetches the most-recent 50 every 5s.
+ * Channel messages — initial fetch + safety-net poll.
  *
- * v1 simplification: family-scale traffic won't exceed 50 in a 5-second
- * window, so we don't need cursor-based delta polling. Phase 2 adds
- * scroll-up-to-load-older + WebSocket push.
+ * Real-time updates come via `useChannelLiveSync` which subscribes to
+ * /v1/ws and pushes new messages into this cache. Polling is fallback
+ * only.
  *
  * The API returns DESC order; we sort ASC for display.
  */
@@ -57,6 +61,51 @@ export function useChannelMessages(slug: string) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   })
+}
+
+/**
+ * Open a WebSocket for `slug` and push new messages into the
+ * `['messages', slug]` query cache. Returns the connection status so
+ * the UI can show a "reconnecting…" indicator if needed.
+ *
+ * On reconnect we invalidate the query — that re-fetches the recent 50
+ * and recovers anything missed while the socket was down.
+ */
+export function useChannelLiveSync(slug: string): StreamStatus {
+  const qc = useQueryClient()
+  const queryKey = ['messages', slug]
+
+  const onEvent = useCallback(
+    (event: StreamEvent) => {
+      if (event.type === 'hello') {
+        // Re-sync history on (re)connect to backfill anything missed.
+        qc.invalidateQueries({ queryKey })
+        return
+      }
+      if (event.type === 'message.created') {
+        qc.setQueryData<Message[] | undefined>(queryKey, (prev) => {
+          const incoming = event.message
+          if (!prev) return [incoming]
+          // Dedup: the POST response also invalidates this key, so the
+          // newly-posted message can arrive both ways.
+          if (prev.some((m) => m.id === incoming.id)) return prev
+          const next = [...prev, incoming]
+          next.sort(
+            (a, b) =>
+              a.created_at.localeCompare(b.created_at) ||
+              a.id.localeCompare(b.id),
+          )
+          return next
+        })
+      }
+    },
+    // queryKey is structurally equal across renders for a given slug;
+    // pull `slug` directly into deps to satisfy exhaustive-deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [slug, qc],
+  )
+
+  return useChannelStream(slug, { onEvent })
 }
 
 export function useChannelMembers(slug: string) {

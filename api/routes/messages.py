@@ -22,6 +22,7 @@ from api.cursors import decode_cursor, encode_cursor
 from api.db import get_session
 from api.mentions import extract_handles, resolve_handles
 from api.models import Account, Mention, Message
+from api.realtime import hub
 
 
 router = APIRouter(prefix="/v1/messages", tags=["messages"])
@@ -219,7 +220,7 @@ def post_message(
     db.commit()
     db.refresh(msg)
 
-    return MessageOut(
+    out = MessageOut(
         id=str(msg.id),
         channel=chan.slug,
         thread_id=str(msg.thread_id) if msg.thread_id else None,
@@ -232,3 +233,16 @@ def post_message(
         edited_at=msg.edited_at,
         mentioned_handles=list(resolved.keys()),
     )
+
+    # Fan out to any WebSocket subscribers on this channel. Threadsafe;
+    # never raises into the request path.
+    hub.publish(
+        chan.id,
+        {
+            "type": "message.created",
+            "channel": chan.slug,
+            "message": out.model_dump(mode="json"),
+        },
+    )
+
+    return out
