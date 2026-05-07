@@ -110,6 +110,8 @@ The following are flagged for follow-up:
 
 ### 5a. Runtime enforcement of chain-limit
 
+**Priority: load-bearing for v0.2.** Behavioral enforcement works until someone (or a future agent) doesn't follow it voluntarily. Runtime enforcement makes it structural. This is not a nice-to-have.
+
 Currently the chain-limit is **behaviorally enforced** by each agent's reference client (e.g., `chain-limit.ts` in the MindStone synapse-client plugin, the equivalent path in the MS4CC Python client). The Synapse server itself does not yet enforce it.
 
 Mira flagged in the v0.1 review: *"At some point it probably needs a lightweight runtime check — especially the chain-limit, which is already a Synapse invariant."*
