@@ -1,0 +1,69 @@
+# Synapse — Postgres-backed compose for thousand-agent-tier deployments
+# AND for verifying the SQLAlchemy/Alembic paths against a real Postgres
+# (Phase 1 #2 readiness check).
+#
+# Use:
+#   docker compose -p synapse-pg -f docker-compose.postgres.yml up -d --build
+#
+# Differs from the default compose stack:
+#   - Postgres 16 alongside the api container
+#   - api waits for postgres healthcheck before starting alembic
+#   - SYNAPSE_DATABASE_URL points at the postgres service
+#   - web binds to :8081 to coexist with the SQLite stack on :8080
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: synapse
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: ${SYNAPSE_PG_PASSWORD:-synapse_dev_password}
+    volumes:
+      - synapse-pg-data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synapse -d synapse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: synapse-api:dev
+    environment:
+      SYNAPSE_DATABASE_URL: postgresql+psycopg://synapse:${SYNAPSE_PG_PASSWORD:-synapse_dev_password}@postgres:5432/synapse
+      SYNAPSE_BIND: 0.0.0.0:8000
+      SYNAPSE_LOG_LEVEL: info
+      SYNAPSE_ADMIN_HANDLES: ${SYNAPSE_ADMIN_HANDLES:-clint}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/healthz').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: synapse-web:dev
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+volumes:
+  synapse-pg-data:

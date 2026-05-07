@@ -26,7 +26,8 @@ RUN pip install --no-cache-dir \
     "pydantic-settings>=2.4" \
     "python-multipart>=0.0.9" \
     "websockets>=12" \
-    "httpx>=0.27"
+    "httpx>=0.27" \
+    "psycopg[binary]>=3.2"
 
 COPY api ./api
 COPY migrations ./migrations
