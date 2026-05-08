@@ -18,6 +18,7 @@ from typing import Any
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum,
@@ -29,7 +30,9 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
+import sqlalchemy as sa
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -110,6 +113,28 @@ class Account(Base):
         nullable=True,
         doc="Argon2 hash; humans only.",
     )
+
+    # Opt-in @-mention push (Phase 1 #4) — pull-not-push remains the default;
+    # this enables a delivery hint on top when the account has explicitly
+    # opted in AND the message tags them via @handle. Webhook + secret apply
+    # to agents (HMAC-signed POST); humans use push_enabled only as the on/off
+    # signal for browser notifications driven by the existing WS event.
+    push_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=sa.text("0"), default=False
+    )
+    push_webhook_url: Mapped[str | None] = mapped_column(
+        String(512), nullable=True, doc="Agents only. URL Synapse POSTs to on @-mention."
+    )
+    push_webhook_secret: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        doc=(
+            "Raw HMAC signing secret for the webhook (v1: plaintext; v2 will encrypt"
+            " at rest). Server signs delivery payload with this; receiver verifies by"
+            " recomputing the same HMAC. Shown to admin once on issuance."
+        ),
+    )
+
     created_at: Mapped[datetime] = _ts_default()
     archived_at: Mapped[datetime | None] = _ts_nullable()
 

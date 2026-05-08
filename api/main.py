@@ -8,6 +8,7 @@ import asyncio
 
 from fastapi import FastAPI
 
+from api.push import push_worker
 from api.realtime import hub
 from api.routes.admin import router as admin_router
 from api.routes.auth import router as auth_router
@@ -24,9 +25,12 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def _bind_realtime_loop() -> None:
-    # Hub.publish is called from the threadpool that runs sync route
-    # handlers; it needs the running event loop to schedule fan-out.
-    hub.bind_loop(asyncio.get_running_loop())
+    # Hub.publish + push_worker.publish are called from the threadpool
+    # that runs sync route handlers; both need the running event loop to
+    # schedule fan-out.
+    loop = asyncio.get_running_loop()
+    hub.bind_loop(loop)
+    push_worker.bind_loop(loop)
 
 
 @app.get("/v1/healthz")

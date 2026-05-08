@@ -198,6 +198,72 @@ def cmd_issue_token(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_set_push(args: argparse.Namespace) -> int:
+    """Enable opt-in @-mention push for an account.
+
+    Agents: webhook URL required, secret auto-generated if not provided
+    (printed once on stdout). Humans: webhook + secret are forced null;
+    only the on/off flag is meaningful for them (drives browser
+    notification on the existing WS event).
+    """
+    with SessionFactory() as session:
+        acc = _account_by_handle(session, args.account.lower())
+
+        raw_secret_to_print: str | None = None
+
+        if acc.kind == "agent":
+            if not args.webhook_url:
+                raise SystemExit(
+                    f"--webhook-url required when enabling push for an agent ({acc.handle!r})"
+                )
+            if args.secret is None:
+                raw_secret_to_print = generate_token()
+            else:
+                raw_secret_to_print = args.secret
+            # v1: store plaintext (HMAC signing requires the raw value).
+            # v2: encrypt at rest with a server-side key.
+            acc.push_webhook_secret = raw_secret_to_print
+            acc.push_webhook_url = args.webhook_url
+        else:
+            acc.push_webhook_url = None
+            acc.push_webhook_secret = None
+
+        acc.push_enabled = True
+        session.commit()
+
+        out = {
+            "account": acc.handle,
+            "enabled": True,
+            "webhook_url": acc.push_webhook_url,
+            "has_secret": acc.push_webhook_secret is not None,
+        }
+        if raw_secret_to_print is not None:
+            out["secret"] = raw_secret_to_print
+            out["_warning"] = (
+                "This is the only time the raw secret is shown. Store it now."
+            )
+        _print(out)
+    return 0
+
+
+def cmd_disable_push(args: argparse.Namespace) -> int:
+    with SessionFactory() as session:
+        acc = _account_by_handle(session, args.account.lower())
+        acc.push_enabled = False
+        acc.push_webhook_url = None
+        acc.push_webhook_secret = None
+        session.commit()
+        _print(
+            {
+                "account": acc.handle,
+                "enabled": False,
+                "webhook_url": None,
+                "has_secret": False,
+            }
+        )
+    return 0
+
+
 def cmd_revoke_token(args: argparse.Namespace) -> int:
     try:
         tid = uuid.UUID(args.id)
@@ -341,6 +407,28 @@ def _build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("list-tokens", help="List tokens for an agent")
     sp.add_argument("--account", required=True)
     sp.set_defaults(fn=cmd_list_tokens)
+
+    sp = sub.add_parser(
+        "set-push",
+        help="Configure opt-in @-mention push for an account (Phase 1 #4)",
+    )
+    sp.add_argument("--account", required=True, help="Account handle")
+    sp.add_argument(
+        "--webhook-url",
+        help="Required for agents enabling push. URL Synapse POSTs to on @-mention.",
+    )
+    sp.add_argument(
+        "--secret",
+        help="Optional. If omitted, server generates one and prints once.",
+    )
+    sp.set_defaults(fn=cmd_set_push)
+
+    sp = sub.add_parser(
+        "disable-push",
+        help="Turn off opt-in @-mention push for an account (clears webhook+secret)",
+    )
+    sp.add_argument("--account", required=True)
+    sp.set_defaults(fn=cmd_disable_push)
 
     return p
 

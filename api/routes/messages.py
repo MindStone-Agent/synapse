@@ -22,6 +22,7 @@ from api.cursors import decode_cursor, encode_cursor
 from api.db import get_session
 from api.mentions import extract_handles, resolve_handles
 from api.models import Account, Mention, Message
+from api.push import push_worker
 from api.realtime import hub
 
 
@@ -234,15 +235,47 @@ def post_message(
         mentioned_handles=list(resolved.keys()),
     )
 
+    envelope = {
+        "type": "message.created",
+        "channel": chan.slug,
+        "message": out.model_dump(mode="json"),
+    }
+
     # Fan out to any WebSocket subscribers on this channel. Threadsafe;
     # never raises into the request path.
-    hub.publish(
-        chan.id,
-        {
-            "type": "message.created",
-            "channel": chan.slug,
-            "message": out.model_dump(mode="json"),
-        },
-    )
+    hub.publish(chan.id, envelope)
+
+    # Opt-in @-mention push: for each mentioned account that has
+    # push_enabled AND a webhook configured (agents only), fire an
+    # HMAC-signed POST to their webhook. Pull-not-push remains the
+    # default; this is a delivery hint on top of the pull architecture.
+    if resolved:
+        push_recipients = []
+        accounts_by_id = {
+            a.id: a
+            for a in db.execute(
+                select(Account).where(Account.id.in_(resolved.values()))
+            ).scalars().all()
+        }
+        for account_id in resolved.values():
+            recipient = accounts_by_id.get(account_id)
+            if (
+                recipient is None
+                or not recipient.push_enabled
+                or recipient.kind != "agent"
+                or not recipient.push_webhook_url
+                or not recipient.push_webhook_secret
+            ):
+                continue
+            push_recipients.append(
+                {
+                    "account_id": recipient.id,
+                    "handle": recipient.handle,
+                    "webhook_url": recipient.push_webhook_url,
+                    "secret": recipient.push_webhook_secret,
+                }
+            )
+        if push_recipients:
+            push_worker.publish(push_recipients, envelope)
 
     return out

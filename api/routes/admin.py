@@ -117,6 +117,43 @@ class IssuedTokenOut(TokenOut):
     token: str  # raw value, printed once
 
 
+class PushConfigOut(BaseModel):
+    """Push status for an account. Does NOT include the raw secret."""
+
+    account_handle: str
+    enabled: bool
+    webhook_url: str | None
+    has_secret: bool
+
+
+class SetPushBody(BaseModel):
+    """Configure push for an account.
+
+    For agents:
+      - When enabling, webhook_url is required.
+      - If secret is omitted, the server generates one and returns it once.
+      - If secret is provided, it's used as-is (caller has the responsibility
+        to keep it long + random).
+    For humans:
+      - Only `enabled` is meaningful (drives browser notification on the
+        existing WS event). webhook_url and secret are ignored / forced null.
+    """
+
+    enabled: bool
+    webhook_url: str | None = None
+    secret: str | None = None
+
+
+class IssuedPushConfigOut(PushConfigOut):
+    """Returned from PATCH /accounts/{id}/push.
+
+    `secret` is the raw value, printed exactly once on issuance. Subsequent
+    GETs return a `PushConfigOut` without it.
+    """
+
+    secret: str | None = None
+
+
 # --- Helpers -----------------------------------------------------------
 
 
@@ -260,6 +297,83 @@ def unarchive_account(
         db.commit()
         db.refresh(acc)
     return _account_to_out(acc)
+
+
+@router.get("/accounts/{account_id}/push", response_model=PushConfigOut)
+def get_account_push(
+    account_id: str, db: Session = Depends(get_session)
+) -> PushConfigOut:
+    acc = _account_or_404(db, account_id)
+    return PushConfigOut(
+        account_handle=acc.handle,
+        enabled=bool(acc.push_enabled),
+        webhook_url=acc.push_webhook_url,
+        has_secret=acc.push_webhook_secret is not None,
+    )
+
+
+@router.patch("/accounts/{account_id}/push", response_model=IssuedPushConfigOut)
+def set_account_push(
+    account_id: str,
+    body: SetPushBody,
+    db: Session = Depends(get_session),
+) -> IssuedPushConfigOut:
+    """Configure opt-in @-mention push for an account (Phase 1 #4).
+
+    Pull-not-push remains the default; this is a delivery hint *on top* of
+    the pull architecture. Triggers only when (1) the account has explicitly
+    opted in via `enabled=true`, AND (2) a message tags them via @handle.
+    """
+    acc = _account_or_404(db, account_id)
+    raw_secret_to_return: str | None = None
+
+    # Disable path: clear webhook + secret hash, flip flag off.
+    if body.enabled is False:
+        acc.push_enabled = False
+        acc.push_webhook_url = None
+        acc.push_webhook_secret = None
+        db.commit()
+        db.refresh(acc)
+        return IssuedPushConfigOut(
+            account_handle=acc.handle,
+            enabled=False,
+            webhook_url=None,
+            has_secret=False,
+            secret=None,
+        )
+
+    # Enable path: validate per-kind constraints.
+    if acc.kind == "agent":
+        if not body.webhook_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Agents enabling push must provide webhook_url",
+            )
+        # Issue a fresh secret if none provided (most common path).
+        if body.secret is None:
+            raw_secret_to_return = generate_token()
+        else:
+            raw_secret_to_return = body.secret
+        # v1: store plaintext (HMAC signing requires the raw value).
+        # v2: encrypt at rest with a server-side key.
+        acc.push_webhook_secret = raw_secret_to_return
+        acc.push_webhook_url = body.webhook_url
+    else:
+        # Human: webhook_url + secret don't apply; force null.
+        acc.push_webhook_url = None
+        acc.push_webhook_secret = None
+
+    acc.push_enabled = True
+    db.commit()
+    db.refresh(acc)
+
+    return IssuedPushConfigOut(
+        account_handle=acc.handle,
+        enabled=True,
+        webhook_url=acc.push_webhook_url,
+        has_secret=acc.push_webhook_secret is not None,
+        secret=raw_secret_to_return,
+    )
 
 
 # --- Channels ----------------------------------------------------------
