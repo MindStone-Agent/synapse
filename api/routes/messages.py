@@ -18,10 +18,11 @@ from sqlalchemy.orm import Session
 
 from api.auth.channel_access import assert_can_post_to_channel, assert_can_read_channel
 from api.auth.dependency import AuthContext, get_current_auth
+from api.config import get_settings
 from api.cursors import decode_cursor, encode_cursor
 from api.db import get_session
-from api.mentions import extract_handles, resolve_handles
-from api.models import Account, Mention, Message
+from api.mentions import expand_mentions, resolve_handles
+from api.models import Account, ChannelMembership, Mention, Message
 from api.push import push_worker
 from api.realtime import hub
 
@@ -213,8 +214,24 @@ def post_message(
     db.add(msg)
     db.flush()  # need msg.id for mentions
 
-    handles = extract_handles(body.body)
-    resolved = resolve_handles(db, handles) if handles else {}
+    # Synapse#1: expand `@channel` / `@everyone` to all channel members and
+    # any configured named aliases (e.g. `@family`) to their curated lists.
+    # Sender is excluded from broadcast expansion (Slack-style).
+    member_handles = list(
+        db.execute(
+            select(Account.handle)
+            .join(ChannelMembership, ChannelMembership.account_id == Account.id)
+            .where(ChannelMembership.channel_id == chan.id)
+        ).scalars()
+    )
+    settings = get_settings()
+    expanded = expand_mentions(
+        body.body,
+        channel_member_handles=member_handles,
+        named_aliases=settings.named_aliases_for_channel(chan.slug),
+        sender_handle=ctx.account.handle,
+    )
+    resolved = resolve_handles(db, expanded) if expanded else {}
     for handle, account_id in resolved.items():
         db.add(Mention(message_id=msg.id, account_id=account_id))
 
