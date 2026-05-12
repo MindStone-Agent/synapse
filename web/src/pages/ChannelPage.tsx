@@ -117,11 +117,22 @@ function StreamIndicator({ status }: { status: StreamStatus }) {
 
 function MessageList({ messages, meHandle }: { messages: Message[]; meHandle: string }) {
   return (
-    <ol className="mx-auto flex max-w-3xl flex-col gap-3 list-none p-0">
+    <ol className="mx-auto flex max-w-3xl flex-col list-none p-0">
       {messages.map((m, i) => {
         const prev = i > 0 ? messages[i - 1] : null
         const grouped = prev ? shouldGroup(prev, m) : false
-        return <MessageRow key={m.id} message={m} meHandle={meHandle} grouped={grouped} />
+        // First message in the list (no prev) doesn't get a leading divider;
+        // every non-grouped message after the first does.
+        const showDivider = prev !== null && !grouped
+        return (
+          <MessageRow
+            key={m.id}
+            message={m}
+            meHandle={meHandle}
+            grouped={grouped}
+            showDivider={showDivider}
+          />
+        )
       })}
     </ol>
   )
@@ -131,40 +142,48 @@ function MessageRow({
   message,
   meHandle,
   grouped,
+  showDivider,
 }: {
   message: Message
   meHandle: string
   grouped: boolean
+  showDivider: boolean
 }) {
   const isMe = message.sender_handle === meHandle
   return (
-    <li className={grouped ? 'pl-0' : 'pt-3'}>
+    <li className={grouped ? 'pt-1' : 'pt-3'}>
+      {showDivider && (
+        <hr
+          className="mb-3 border-0"
+          style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.10))' }}
+        />
+      )}
       {!grouped && (
-        <div className="mb-1 flex items-baseline gap-3">
+        <div className="mb-1.5 flex items-baseline gap-3">
           <span
-            className="font-display text-base font-medium tracking-tight"
-            style={{ color: 'var(--heading)' }}
+            className="font-mono text-[13px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: isMe ? 'var(--accent-text-bold)' : 'var(--heading)' }}
           >
             {message.sender_handle}
-            {message.sender_kind === 'agent' && (
-              <span
-                className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]"
-                style={{ color: 'var(--muted)' }}
-              >
-                agent
-              </span>
-            )}
-            {isMe && (
-              <span
-                className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]"
-                style={{ color: 'var(--accent-text)' }}
-              >
-                you
-              </span>
-            )}
           </span>
+          {message.sender_kind === 'agent' && (
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: 'var(--muted)' }}
+            >
+              agent
+            </span>
+          )}
+          {isMe && (
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: 'var(--accent-text)' }}
+            >
+              you
+            </span>
+          )}
           <span
-            className="font-mono text-[11px]"
+            className="ml-auto font-mono text-[11px]"
             style={{ color: 'var(--muted)' }}
             title={new Date(message.created_at).toISOString()}
           >

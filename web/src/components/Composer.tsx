@@ -6,8 +6,11 @@ import {
   type KeyboardEvent,
   type ChangeEvent,
 } from 'react'
+import emojiData from '@emoji-mart/data'
+import EmojiPicker from '@emoji-mart/react'
 import { ApiError } from '../lib/api'
 import { usePostMessage, useChannelMembers, type Member } from '../lib/messages'
+import { useTheme } from '../lib/theme'
 
 interface Props {
   channelSlug: string
@@ -23,8 +26,11 @@ interface Props {
  */
 export function Composer({ channelSlug, meHandle, onSent }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const emojiPopoverRef = useRef<HTMLDivElement>(null)
+  const emojiButtonRef = useRef<HTMLButtonElement>(null)
   const [body, setBody] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [autocompleteToken, setAutocompleteToken] = useState<{
     start: number
     end: number
@@ -34,6 +40,49 @@ export function Composer({ channelSlug, meHandle, onSent }: Props) {
 
   const post = usePostMessage(channelSlug)
   const membersQuery = useChannelMembers(channelSlug)
+  const { theme } = useTheme()
+
+  // Insert emoji at the current cursor position in the textarea. Focus
+  // returns to the textarea so further typing flows naturally.
+  function insertEmoji(native: string) {
+    const el = textareaRef.current
+    if (!el) {
+      setBody((prev) => prev + native)
+      return
+    }
+    const start = el.selectionStart ?? body.length
+    const end = el.selectionEnd ?? body.length
+    const next = body.slice(0, start) + native + body.slice(end)
+    setBody(next)
+    const caret = start + native.length
+    requestAnimationFrame(() => {
+      const e2 = textareaRef.current
+      if (!e2) return
+      e2.focus()
+      e2.setSelectionRange(caret, caret)
+    })
+  }
+
+  // Close the picker on outside click or Escape.
+  useEffect(() => {
+    if (!showEmojiPicker) return
+    function onPointerDown(e: PointerEvent) {
+      const target = e.target as Node | null
+      if (!target) return
+      if (emojiPopoverRef.current?.contains(target)) return
+      if (emojiButtonRef.current?.contains(target)) return
+      setShowEmojiPicker(false)
+    }
+    function onKey(e: globalThis.KeyboardEvent) {
+      if (e.key === 'Escape') setShowEmojiPicker(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [showEmojiPicker])
 
   const candidates: Member[] = useMemo(() => {
     if (!autocompleteToken || !membersQuery.data) return []
@@ -152,6 +201,29 @@ export function Composer({ channelSlug, meHandle, onSent }: Props) {
 
   return (
     <div className="relative">
+      {showEmojiPicker && (
+        <div
+          ref={emojiPopoverRef}
+          className="absolute bottom-full mb-2 right-3 z-20 overflow-hidden rounded-md"
+          style={{
+            boxShadow: 'var(--shadow-pop)',
+            // emoji-mart picker is ~360x435; keeping its own internal styling.
+          }}
+        >
+          <EmojiPicker
+            data={emojiData}
+            theme={theme}
+            previewPosition="none"
+            skinTonePosition="search"
+            onEmojiSelect={(e: { native?: string }) => {
+              if (e.native) {
+                insertEmoji(e.native)
+              }
+              setShowEmojiPicker(false)
+            }}
+          />
+        </div>
+      )}
       {autocompleteToken && candidates.length > 0 && (
         <div
           className="absolute bottom-full mb-2 left-3 z-10 min-w-[240px] overflow-hidden rounded-md"
@@ -227,24 +299,41 @@ export function Composer({ channelSlug, meHandle, onSent }: Props) {
               </>
             )}
           </p>
-          <button
-            type="button"
-            onClick={send}
-            disabled={!body.trim() || post.isPending}
-            className="group relative inline-flex items-center gap-1.5 overflow-hidden px-4 py-1.5 text-xs font-medium uppercase tracking-[0.12em] transition-transform active:translate-y-[1px] disabled:opacity-50"
-            style={{
-              background: 'var(--accent)',
-              color: 'var(--ink-900)',
-              borderRadius: 'var(--radius-btn)',
-            }}
-          >
-            <span className="relative">{post.isPending ? 'Sending…' : 'Send'}</span>
-            <span
-              aria-hidden
-              className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
-              style={{ background: 'var(--accent-hover)' }}
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              ref={emojiButtonRef}
+              onClick={() => setShowEmojiPicker((v) => !v)}
+              aria-label="Insert emoji"
+              aria-expanded={showEmojiPicker}
+              className="inline-flex h-7 w-7 items-center justify-center rounded transition-colors"
+              style={{
+                color: showEmojiPicker ? 'var(--accent-text-bold)' : 'var(--muted)',
+                background: showEmojiPicker ? 'var(--accent-soft)' : 'transparent',
+              }}
+              title="Insert emoji"
+            >
+              <span aria-hidden style={{ fontSize: '17px', lineHeight: 1 }}>😀</span>
+            </button>
+            <button
+              type="button"
+              onClick={send}
+              disabled={!body.trim() || post.isPending}
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden px-4 py-1.5 text-xs font-medium uppercase tracking-[0.12em] transition-transform active:translate-y-[1px] disabled:opacity-50"
+              style={{
+                background: 'var(--accent)',
+                color: 'var(--ink-900)',
+                borderRadius: 'var(--radius-btn)',
+              }}
+            >
+              <span className="relative">{post.isPending ? 'Sending…' : 'Send'}</span>
+              <span
+                aria-hidden
+                className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
+                style={{ background: 'var(--accent-hover)' }}
+              />
+            </button>
+          </div>
         </div>
       </div>
     </div>
