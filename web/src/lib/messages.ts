@@ -116,6 +116,24 @@ export function useChannelMembers(slug: string) {
   })
 }
 
+export interface ChannelSummary {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  kind: string
+  role: 'admin' | 'member' | 'read_only'
+}
+
+/** Channels the current user is a member of (sidebar source-of-truth). */
+export function useMyChannels() {
+  return useQuery({
+    queryKey: ['channels', 'mine'],
+    queryFn: () => api<{ channels: ChannelSummary[] }>('/v1/channels'),
+    staleTime: 30_000,
+  })
+}
+
 export function usePostMessage(slug: string) {
   const qc = useQueryClient()
   return useMutation({

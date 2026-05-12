@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useMe, useLogout } from '../lib/auth'
+import { useMyChannels } from '../lib/messages'
 import { ThemeToggle } from './ThemeToggle'
 import { Wordmark } from './Wordmark'
 
@@ -12,6 +13,7 @@ import { Wordmark } from './Wordmark'
 export function AppLayout() {
   const { data: me } = useMe()
   const logout = useLogout()
+  const channelsQuery = useMyChannels()
 
   return (
     <div className="relative z-10 min-h-screen flex flex-col" style={{ color: 'var(--text)' }}>
@@ -64,7 +66,31 @@ export function AppLayout() {
             Channels
           </p>
           <nav className="flex flex-col gap-0.5">
-            <ChannelLink slug="family-ops" label="family-ops" />
+            {channelsQuery.isLoading && (
+              <span
+                className="px-3 py-1.5 font-mono text-xs"
+                style={{ color: 'var(--muted)' }}
+              >
+                loading…
+              </span>
+            )}
+            {channelsQuery.isError && (
+              // Fallback: API unreachable, keep family-ops link visible so
+              // operator can always navigate to the default channel.
+              <ChannelLink slug="family-ops" label="family-ops" />
+            )}
+            {channelsQuery.data?.channels
+              ?.slice()
+              .sort((a, b) => a.slug.localeCompare(b.slug))
+              .map((ch) => <ChannelLink key={ch.slug} slug={ch.slug} label={ch.slug} />)}
+            {channelsQuery.data && channelsQuery.data.channels.length === 0 && (
+              <span
+                className="px-3 py-1.5 font-mono text-xs"
+                style={{ color: 'var(--muted)' }}
+              >
+                no channels
+              </span>
+            )}
           </nav>
 
           {me?.is_admin && (

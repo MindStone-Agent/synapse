@@ -389,6 +389,7 @@ def list_all_channels(db: Session = Depends(get_session)) -> list[ChannelOut]:
 def create_channel(
     body: CreateChannelBody,
     db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_admin),
 ) -> ChannelOut:
     slug = body.slug.lower()
     existing = db.execute(
@@ -398,6 +399,13 @@ def create_channel(
         raise HTTPException(status_code=409, detail="Slug already exists")
     ch = Channel(slug=slug, name=body.name, description=body.description, kind=body.kind)
     db.add(ch)
+    db.flush()  # Get ch.id without ending the transaction.
+
+    # Auto-add the creator as a member (admin role) so they can navigate to
+    # the channel they just created without a separate membership call.
+    # Other members are added explicitly via POST /v1/admin/memberships.
+    db.add(ChannelMembership(account_id=ctx.account.id, channel_id=ch.id, role="admin"))
+
     db.commit()
     db.refresh(ch)
     return _channel_to_out(ch)
