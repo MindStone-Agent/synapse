@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useMe } from '../lib/auth'
 import { Composer } from '../components/Composer'
@@ -16,9 +16,16 @@ export function ChannelPage() {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const lastIdRef = useRef<string | null>(null)
 
-  // Auto-scroll to bottom when a new message arrives, unless the user
-  // has scrolled up. (cheap test: within 80px of the bottom counts as
-  // "at the bottom".)
+  // Unread divider: id of the first message the reader hasn't seen, or null
+  // when caught up. `lastReadIdRef` is the newest message they've actually
+  // seen (at the bottom, tab focused).
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null)
+  const lastReadIdRef = useRef<string | null>(null)
+
+  // Auto-scroll to bottom when a new message arrives, unless the user has
+  // scrolled up. (cheap test: within 80px of the bottom counts as "at the
+  // bottom".) Messages that land while the reader is scrolled up — or the tab
+  // is hidden — get a "new messages" divider before the first of them.
   useEffect(() => {
     const el = scrollerRef.current
     if (!el || !messages || messages.length === 0) return
@@ -26,15 +33,41 @@ export function ChannelPage() {
     if (newest.id === lastIdRef.current) return
 
     const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight)
-    const wasAtBottom = distanceFromBottom < 80 || lastIdRef.current === null
-
+    const firstLoad = lastIdRef.current === null
+    const wasAtBottom = distanceFromBottom < 80 || firstLoad
     lastIdRef.current = newest.id
+
+    if (firstLoad || (wasAtBottom && !document.hidden)) {
+      // Reader is caught up — mark everything read, no divider.
+      lastReadIdRef.current = newest.id
+      setFirstUnreadId(null)
+    } else {
+      // New messages arrived unseen — anchor the divider at the first one
+      // after the last-read message, keeping an existing anchor if still valid.
+      setFirstUnreadId((current) => {
+        if (current && messages.some((m) => m.id === current)) return current
+        const lastReadIdx = messages.findIndex((m) => m.id === lastReadIdRef.current)
+        return messages[lastReadIdx + 1]?.id ?? null
+      })
+    }
+
     if (wasAtBottom) {
       requestAnimationFrame(() => {
         el.scrollTop = el.scrollHeight
       })
     }
   }, [messages])
+
+  // Clear the unread divider once the reader scrolls back down to the bottom.
+  function handleScroll() {
+    const el = scrollerRef.current
+    if (!el || !messages || messages.length === 0) return
+    const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight)
+    if (distanceFromBottom < 80) {
+      lastReadIdRef.current = messages[messages.length - 1].id
+      if (firstUnreadId !== null) setFirstUnreadId(null)
+    }
+  }
 
   if (!me) return null
 
@@ -44,6 +77,7 @@ export function ChannelPage() {
 
       <div
         ref={scrollerRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-8 py-6"
         style={{ scrollbarColor: 'var(--border) transparent' }}
       >
@@ -51,7 +85,7 @@ export function ChannelPage() {
         {isError && <ErrorState message={(error as Error).message} onRetry={() => refetch()} />}
         {messages && messages.length === 0 && <EmptyState slug={slug} />}
         {messages && messages.length > 0 && (
-          <MessageList messages={messages} meHandle={me.handle} />
+          <MessageList messages={messages} meHandle={me.handle} firstUnreadId={firstUnreadId} />
         )}
       </div>
 
@@ -115,7 +149,15 @@ function StreamIndicator({ status }: { status: StreamStatus }) {
   )
 }
 
-function MessageList({ messages, meHandle }: { messages: Message[]; meHandle: string }) {
+function MessageList({
+  messages,
+  meHandle,
+  firstUnreadId,
+}: {
+  messages: Message[]
+  meHandle: string
+  firstUnreadId: string | null
+}) {
   return (
     <ol className="mx-auto flex max-w-3xl flex-col list-none p-0">
       {messages.map((m, i) => {
@@ -124,6 +166,7 @@ function MessageList({ messages, meHandle }: { messages: Message[]; meHandle: st
         // First message in the list (no prev) doesn't get a leading divider;
         // every non-grouped message after the first does.
         const showDivider = prev !== null && !grouped
+        const showUnread = firstUnreadId !== null && m.id === firstUnreadId
         return (
           <MessageRow
             key={m.id}
@@ -131,6 +174,7 @@ function MessageList({ messages, meHandle }: { messages: Message[]; meHandle: st
             meHandle={meHandle}
             grouped={grouped}
             showDivider={showDivider}
+            showUnread={showUnread}
           />
         )
       })}
@@ -143,20 +187,39 @@ function MessageRow({
   meHandle,
   grouped,
   showDivider,
+  showUnread,
 }: {
   message: Message
   meHandle: string
   grouped: boolean
   showDivider: boolean
+  showUnread: boolean
 }) {
   const isMe = message.sender_handle === meHandle
   return (
     <li className={grouped ? 'pt-1' : 'pt-3'}>
-      {showDivider && (
-        <hr
-          className="mb-3 border-0"
-          style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.10))' }}
-        />
+      {showUnread ? (
+        <div
+          className="mb-3 mt-1 flex items-center gap-3"
+          role="separator"
+          aria-label="New messages"
+        >
+          <span className="h-px flex-1" style={{ background: 'var(--accent-text)' }} />
+          <span
+            className="font-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: 'var(--accent-text)' }}
+          >
+            new messages
+          </span>
+          <span className="h-px flex-1" style={{ background: 'var(--accent-text)' }} />
+        </div>
+      ) : (
+        showDivider && (
+          <hr
+            className="mb-3 border-0"
+            style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.10))' }}
+          />
+        )
       )}
       {!grouped && (
         <div className="mb-1.5 flex items-baseline gap-3">

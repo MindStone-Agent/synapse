@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useMe, useLogout } from '../lib/auth'
 import { useMyChannels } from '../lib/messages'
@@ -15,6 +16,22 @@ export function AppLayout() {
   const logout = useLogout()
   const channelsQuery = useMyChannels()
 
+  // Sidebar collapse — persisted across sessions, default open.
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('synapse:sidebar') !== 'closed'
+    } catch {
+      return true
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem('synapse:sidebar', sidebarOpen ? 'open' : 'closed')
+    } catch {
+      // ignore — private mode / storage disabled
+    }
+  }, [sidebarOpen])
+
   return (
     <div className="relative z-10 min-h-screen flex flex-col" style={{ color: 'var(--text)' }}>
       <header
@@ -24,9 +41,35 @@ export function AppLayout() {
           borderBottom: '1px dashed var(--border-soft)',
         }}
       >
-        <Link to="/" className="inline-flex items-center gap-3">
-          <Wordmark size="md" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            aria-pressed={sidebarOpen}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors"
+            style={{ color: 'var(--muted)', border: '1px solid var(--border-soft)' }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <line x1="9" y1="4" x2="9" y2="20" />
+            </svg>
+          </button>
+          <Link to="/" className="inline-flex items-center gap-3">
+            <Wordmark size="md" />
+          </Link>
+        </div>
 
         <div className="flex items-center gap-1">
           <ThemeToggle />
@@ -56,7 +99,7 @@ export function AppLayout() {
 
       <div className="flex flex-1">
         <aside
-          className="hidden w-60 shrink-0 px-5 py-6 md:block"
+          className={`hidden w-60 shrink-0 px-5 py-6 ${sidebarOpen ? 'md:block' : ''}`}
           style={{ borderRight: '1px solid var(--border-soft)' }}
         >
           <p
