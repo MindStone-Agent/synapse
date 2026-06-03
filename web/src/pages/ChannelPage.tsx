@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useMe } from '../lib/auth'
 import { Composer } from '../components/Composer'
@@ -6,6 +6,25 @@ import { MessageBody } from '../components/MessageBody'
 import { formatTimestamp, parseTimestamp, shouldGroup } from '../lib/format'
 import { useChannelLiveSync, useChannelMessages, type Message } from '../lib/messages'
 import type { StreamStatus } from '../lib/realtime'
+
+// Per-channel last-read marker (the created_at of the newest message the
+// reader has seen). Persisted so the unread divider survives navigation and
+// reloads.
+const lastReadKey = (slug: string) => `synapse:lastread:${slug}`
+function getLastRead(slug: string): string | null {
+  try {
+    return localStorage.getItem(lastReadKey(slug))
+  } catch {
+    return null
+  }
+}
+function setLastRead(slug: string, isoTs: string): void {
+  try {
+    localStorage.setItem(lastReadKey(slug), isoTs)
+  } catch {
+    // storage disabled / private mode — degrade to in-session only
+  }
+}
 
 export function ChannelPage() {
   const { slug = 'family-ops' } = useParams<{ slug: string }>()
@@ -17,54 +36,96 @@ export function ChannelPage() {
   const lastIdRef = useRef<string | null>(null)
 
   // Unread divider: id of the first message the reader hasn't seen, or null
-  // when caught up. `lastReadIdRef` is the newest message they've actually
-  // seen (at the bottom, tab focused).
+  // when caught up. Per-channel last-read is persisted (localStorage), so on
+  // entering a channel the marker sits at the first message since the last
+  // visit. `lastReadIdRef` tracks the newest message seen this session, for
+  // anchoring live arrivals.
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null)
   const lastReadIdRef = useRef<string | null>(null)
+  const seededSlugRef = useRef<string | null>(null)
+  const pendingMarkerScrollRef = useRef(false)
 
-  // Auto-scroll to bottom when a new message arrives, unless the user has
-  // scrolled up. (cheap test: within 80px of the bottom counts as "at the
-  // bottom".) Messages that land while the reader is scrolled up — or the tab
-  // is hidden — get a "new messages" divider before the first of them.
   useEffect(() => {
     const el = scrollerRef.current
     if (!el || !messages || messages.length === 0) return
     const newest = messages[messages.length - 1]
+
+    // New channel → clear the "first load" sentinel so this run re-seeds the
+    // marker from the persisted last-read position (ref-only; no state reset).
+    if (seededSlugRef.current !== slug) {
+      seededSlugRef.current = slug
+      lastIdRef.current = null
+    }
     if (newest.id === lastIdRef.current) return
 
     const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight)
     const firstLoad = lastIdRef.current === null
     const wasAtBottom = distanceFromBottom < 80 || firstLoad
     lastIdRef.current = newest.id
+    let scrollToMarker = false
 
-    if (firstLoad || (wasAtBottom && !document.hidden)) {
-      // Reader is caught up — mark everything read, no divider.
+    if (firstLoad) {
+      // Entering the channel: place the divider at the first message since the
+      // persisted last-read, and scroll to it (handled by the layout effect).
+      const lastReadTs = getLastRead(slug)
+      const firstUnread = lastReadTs
+        ? (messages.find((m) => m.created_at > lastReadTs) ?? null)
+        : null
+      if (firstUnread) {
+        const idx = messages.findIndex((m) => m.id === firstUnread.id)
+        lastReadIdRef.current = messages[idx - 1]?.id ?? null
+        scrollToMarker = true
+        pendingMarkerScrollRef.current = true
+        setFirstUnreadId(firstUnread.id)
+      } else {
+        lastReadIdRef.current = newest.id
+        setLastRead(slug, newest.created_at)
+        setFirstUnreadId(null)
+      }
+    } else if (wasAtBottom && !document.hidden) {
+      // Reader is at the bottom — caught up; mark read, no divider.
       lastReadIdRef.current = newest.id
+      setLastRead(slug, newest.created_at)
       setFirstUnreadId(null)
     } else {
-      // New messages arrived unseen — anchor the divider at the first one
-      // after the last-read message, keeping an existing anchor if still valid.
+      // New messages while scrolled up / tab hidden — anchor the divider at the
+      // first unseen message, keeping an existing anchor if still valid.
       setFirstUnreadId((current) => {
         if (current && messages.some((m) => m.id === current)) return current
         const lastReadIdx = messages.findIndex((m) => m.id === lastReadIdRef.current)
-        return messages[lastReadIdx + 1]?.id ?? null
+        return messages[lastReadIdx + 1]?.id ?? newest.id
       })
     }
 
-    if (wasAtBottom) {
+    if (wasAtBottom && !scrollToMarker) {
       requestAnimationFrame(() => {
         el.scrollTop = el.scrollHeight
       })
     }
-  }, [messages])
+  }, [messages, slug])
 
-  // Clear the unread divider once the reader scrolls back down to the bottom.
+  // Scroll to the freshly-seeded unread marker once it has rendered.
+  // useLayoutEffect runs after the DOM commit and before paint, so no jump.
+  useLayoutEffect(() => {
+    if (!pendingMarkerScrollRef.current) return
+    const el = scrollerRef.current
+    if (!el) return
+    const marker = el.querySelector('[data-unread-divider]') as HTMLElement | null
+    if (!marker) return
+    pendingMarkerScrollRef.current = false
+    marker.scrollIntoView({ block: 'center' })
+  }, [firstUnreadId])
+
+  // Clear the unread divider + advance last-read once the reader reaches the
+  // bottom (caught up).
   function handleScroll() {
     const el = scrollerRef.current
     if (!el || !messages || messages.length === 0) return
     const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight)
     if (distanceFromBottom < 80) {
-      lastReadIdRef.current = messages[messages.length - 1].id
+      const newest = messages[messages.length - 1]
+      lastReadIdRef.current = newest.id
+      setLastRead(slug, newest.created_at)
       if (firstUnreadId !== null) setFirstUnreadId(null)
     }
   }
@@ -200,6 +261,7 @@ function MessageRow({
     <li className={grouped ? 'pt-1' : 'pt-3'}>
       {showUnread ? (
         <div
+          data-unread-divider
           className="mb-3 mt-1 flex items-center gap-3"
           role="separator"
           aria-label="New messages"
