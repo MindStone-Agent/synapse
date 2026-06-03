@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useMe } from '../lib/auth'
 import { Composer } from '../components/Composer'
 import { MessageBody } from '../components/MessageBody'
-import { formatTimestamp, shouldGroup } from '../lib/format'
+import { formatTimestamp, parseTimestamp, shouldGroup } from '../lib/format'
 import { useChannelLiveSync, useChannelMessages, type Message } from '../lib/messages'
 import type { StreamStatus } from '../lib/realtime'
 
@@ -248,7 +248,7 @@ function MessageRow({
           <span
             className="ml-auto font-mono text-[11px]"
             style={{ color: 'var(--muted)' }}
-            title={new Date(message.created_at).toISOString()}
+            title={parseTimestamp(message.created_at).toISOString()}
           >
             {formatTimestamp(message.created_at)}
           </span>
