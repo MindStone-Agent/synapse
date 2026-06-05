@@ -20,11 +20,11 @@ services:
       # Comma-separated handles of humans allowed to hit /v1/admin/*.
       # Override per-deploy. Agents go through the admin:* scope on
       # their bearer token instead.
-      SYNAPSE_ADMIN_HANDLES: ${SYNAPSE_ADMIN_HANDLES:-clint}
+      SYNAPSE_ADMIN_HANDLES: ${SYNAPSE_ADMIN_HANDLES:-admin}
       # Named broadcast aliases — JSON, per-channel. See api/config.py
       # docstring for shape. `@channel` / `@everyone` always fans out to
       # ALL channel members regardless of this config; named aliases
-      # (e.g. `@family`) target a curated subset.
+      # (e.g. `@team`) target a curated subset.
       SYNAPSE_NAMED_ALIASES: ${SYNAPSE_NAMED_ALIASES:-}
     volumes:
       - synapse-data:/data

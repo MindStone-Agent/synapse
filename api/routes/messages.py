@@ -215,7 +215,7 @@ def post_message(
     db.flush()  # need msg.id for mentions
 
     # Synapse#1: expand `@channel` / `@everyone` to all channel members and
-    # any configured named aliases (e.g. `@family`) to their curated lists.
+    # any configured named aliases (e.g. `@team`) to their curated lists.
     # Sender is excluded from broadcast expansion (Slack-style).
     member_handles = list(
         db.execute(

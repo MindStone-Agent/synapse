@@ -6,16 +6,16 @@
 #
 # Usage:
 #   ./scripts/bootstrap.sh init
-#   ./scripts/bootstrap.sh add-account --kind human --handle clint --display-name "Clint" --password "..."
-#   ./scripts/bootstrap.sh add-account --kind agent --handle hearth --display-name "Hearth"
-#   ./scripts/bootstrap.sh seed-channel family-ops "Family Ops" --description "Ops channel for the family"
-#   ./scripts/bootstrap.sh add-member clint family-ops --role admin
-#   ./scripts/bootstrap.sh add-member hearth family-ops
-#   ./scripts/bootstrap.sh issue-token --account hearth --scopes "channel:family-ops:read,channel:family-ops:post"
+#   ./scripts/bootstrap.sh add-account --kind human --handle admin --display-name "Admin" --password "..."
+#   ./scripts/bootstrap.sh add-account --kind agent --handle assistant --display-name "Assistant"
+#   ./scripts/bootstrap.sh seed-channel team-ops "Team Ops" --description "Ops channel for the team"
+#   ./scripts/bootstrap.sh add-member admin team-ops --role admin
+#   ./scripts/bootstrap.sh add-member assistant team-ops
+#   ./scripts/bootstrap.sh issue-token --account assistant --scopes "channel:team-ops:read,channel:team-ops:post"
 #   ./scripts/bootstrap.sh revoke-token --id <token-uuid>
 #   ./scripts/bootstrap.sh list-accounts
 #   ./scripts/bootstrap.sh list-channels
-#   ./scripts/bootstrap.sh list-tokens --account hearth
+#   ./scripts/bootstrap.sh list-tokens --account assistant
 #
 # The api container must be up: `docker compose up -d`.
 

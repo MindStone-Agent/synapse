@@ -160,7 +160,7 @@ class AgentToken(Base):
         String(64), nullable=False, unique=True, doc="sha256(bearer)"
     )
     scopes: Mapped[list[str]] = mapped_column(
-        JSON, nullable=False, default=list, doc='e.g. ["channel:family-ops:post"]'
+        JSON, nullable=False, default=list, doc='e.g. ["channel:team-ops:post"]'
     )
     created_at: Mapped[datetime] = _ts_default()
     last_used_at: Mapped[datetime | None] = _ts_nullable()

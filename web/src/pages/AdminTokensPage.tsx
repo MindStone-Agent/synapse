@@ -219,7 +219,7 @@ function IssueTokenModal({
   onClose: () => void
   onIssued: (t: IssuedToken) => void
 }) {
-  const [scopesText, setScopesText] = useState('channel:family-ops:read,channel:family-ops:post')
+  const [scopesText, setScopesText] = useState('channel:team-ops:read,channel:team-ops:post')
   const [error, setError] = useState<string | null>(null)
   const issue = useIssueToken()
 

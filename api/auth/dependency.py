@@ -44,7 +44,7 @@ class AuthContext:
         if self.account.kind == "human":
             # Humans default to full access (channel-level RBAC enforced separately).
             return True
-        # Wildcard support: "channel:*:read" satisfies "channel:family-ops:read".
+        # Wildcard support: "channel:*:read" satisfies "channel:team-ops:read".
         for granted in self.scopes:
             if granted == scope or granted == "admin:*":
                 return True
@@ -57,8 +57,8 @@ def _scope_matches(granted: str, requested: str) -> bool:
     """Wildcard-aware scope match.
 
     Examples:
-      granted='channel:*:read', requested='channel:family-ops:read' → True
-      granted='channel:family-ops:*', requested='channel:family-ops:post' → True
+      granted='channel:*:read', requested='channel:team-ops:read' → True
+      granted='channel:team-ops:*', requested='channel:team-ops:post' → True
       granted='dm:*:*', requested='dm:abc-123:post' → True
     """
     g = granted.split(":")

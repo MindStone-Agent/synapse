@@ -1,6 +1,6 @@
 """In-process pubsub for WebSocket fanout.
 
-Phase 1: single FastAPI process, in-memory subscribers. Family-scale only.
+Phase 1: single FastAPI process, in-memory subscribers. Small-team scale only.
 Phase 3 (Brian's thousand-agent tier): swap the storage backend behind
 this same interface for Redis pubsub or NATS — Hub stays the seam.
 

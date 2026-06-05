@@ -30,7 +30,7 @@ export function HomePage() {
       {me && (
         <div className="mt-10 inline-flex items-center gap-3">
           <Link
-            to="/channels/family-ops"
+            to="/channels/team-ops"
             className="group relative inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium overflow-hidden"
             style={{
               background: 'var(--accent)',
@@ -38,7 +38,7 @@ export function HomePage() {
               borderRadius: 'var(--radius-btn)',
             }}
           >
-            <span className="relative">Open #family-ops →</span>
+            <span className="relative">Open #team-ops →</span>
             <span
               aria-hidden
               className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"

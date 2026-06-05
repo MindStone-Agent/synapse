@@ -2,8 +2,8 @@
 
 Wrapped by scripts/bootstrap.sh so admins run e.g.:
 
-    ./scripts/bootstrap.sh add-account --kind human --handle clint \
-        --display-name "Clint" --password "..."
+    ./scripts/bootstrap.sh add-account --kind human --handle admin \
+        --display-name "Admin" --password "..."
 
 Subcommands:
     init                    run alembic upgrade head explicitly
@@ -389,7 +389,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument(
         "--scopes",
         required=True,
-        help="Comma-separated, e.g. 'channel:family-ops:read,channel:family-ops:post'",
+        help="Comma-separated, e.g. 'channel:team-ops:read,channel:team-ops:post'",
     )
     sp.set_defaults(fn=cmd_issue_token)
 

@@ -5,13 +5,13 @@ Resolution is one batch lookup against accounts.handle so message
 posting stays a single transaction.
 
 Patterns:
-  @hearth        → match (explicit handle)
-  @mira-2        → match
+  @assistant     → match (explicit handle)
+  @agent-2       → match
   email@host     → no match (preceded by non-whitespace)
-  `@hearth`      → match (in code spans, intentional — humans expect this)
+  `@assistant`   → match (in code spans, intentional — humans expect this)
   @channel       → broadcast to all channel members (Synapse#1)
   @everyone      → alias for @channel
-  @family        → named alias (config-driven; expands to a curated subset)
+  @team          → named alias (config-driven; expands to a curated subset)
 
 Broadcast tokens (`@channel`, `@everyone`) and named aliases never
 include the sender themselves — Slack-style discipline: your own
@@ -68,7 +68,7 @@ def expand_mentions(
     - Explicit `@handle` mentions are kept as-is.
     - `@channel` / `@everyone` expand to every entry in
       `channel_member_handles`, MINUS the sender (if provided).
-    - Named aliases (e.g. `@family`) — looked up in `named_aliases` dict;
+    - Named aliases (e.g. `@team`) — looked up in `named_aliases` dict;
       each maps to a curated list of handles, expanded MINUS the sender.
     - Aliases that don't match a known broadcast token or a configured
       named alias are passed through unchanged (so a stray `@nonexistent`

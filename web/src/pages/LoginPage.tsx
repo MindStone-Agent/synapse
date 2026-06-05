@@ -54,7 +54,7 @@ export function LoginPage() {
           className="mt-2 text-sm font-mono"
           style={{ color: 'var(--muted)' }}
         >
-          a private room for the family
+          a private room for the team
         </p>
       </header>
 

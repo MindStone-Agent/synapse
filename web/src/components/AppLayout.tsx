@@ -118,9 +118,9 @@ export function AppLayout() {
               </span>
             )}
             {channelsQuery.isError && (
-              // Fallback: API unreachable, keep family-ops link visible so
+              // Fallback: API unreachable, keep team-ops link visible so
               // operator can always navigate to the default channel.
-              <ChannelLink slug="family-ops" label="family-ops" />
+              <ChannelLink slug="team-ops" label="team-ops" />
             )}
             {channelsQuery.data?.channels
               ?.slice()

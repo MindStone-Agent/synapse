@@ -56,12 +56,12 @@ class Settings(BaseSettings):
     # `@<alias_name>`, it expands to the listed handles (minus the
     # sender). Distinct from `@channel`/`@everyone` which always fans out
     # to all channel members. Useful for curated subsets — e.g. a
-    # `family` alias inside a channel that also has guest agents.
+    # `team` alias inside a channel that also has guest agents.
     #
     # Format (JSON):
     #   {
-    #     "family-ops": {"family": ["clint", "mira", "cairn", "hearth", "lux"]},
-    #     "all-hands":  {"engineering": ["cairn", "mira"]}
+    #     "team-ops": {"team": ["admin", "assistant", "agent-1"]},
+    #     "all-hands":  {"engineering": ["agent-1", "agent-2"]}
     #   }
     #
     # Read from SYNAPSE_NAMED_ALIASES. Empty / unparseable values yield

@@ -371,7 +371,7 @@ function AddMemberModal({
             value={accountHandle}
             onChange={(e) => setAccountHandle(e.target.value)}
             list="all-accounts"
-            placeholder="e.g. mira"
+            placeholder="e.g. agent-1"
             className="w-full bg-transparent px-3 py-2 text-sm font-mono"
             style={{
               border: '1px solid var(--border)',

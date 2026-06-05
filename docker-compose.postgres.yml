@@ -39,7 +39,7 @@ services:
       SYNAPSE_DATABASE_URL: postgresql+psycopg://synapse:${SYNAPSE_PG_PASSWORD:-synapse_dev_password}@postgres:5432/synapse
       SYNAPSE_BIND: 0.0.0.0:8000
       SYNAPSE_LOG_LEVEL: info
-      SYNAPSE_ADMIN_HANDLES: ${SYNAPSE_ADMIN_HANDLES:-clint}
+      SYNAPSE_ADMIN_HANDLES: ${SYNAPSE_ADMIN_HANDLES:-admin}
     depends_on:
       postgres:
         condition: service_healthy

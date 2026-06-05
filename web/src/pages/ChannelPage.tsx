@@ -27,7 +27,7 @@ function setLastRead(slug: string, isoTs: string): void {
 }
 
 export function ChannelPage() {
-  const { slug = 'family-ops' } = useParams<{ slug: string }>()
+  const { slug = 'team-ops' } = useParams<{ slug: string }>()
   const { data: me } = useMe()
   const { data: messages, isLoading, isError, error, refetch } = useChannelMessages(slug)
   const streamStatus = useChannelLiveSync(slug)

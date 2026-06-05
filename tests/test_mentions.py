@@ -14,11 +14,11 @@ from api.mentions import BROADCAST_TOKENS, expand_mentions, extract_handles
 
 
 def test_extract_handles_explicit_only() -> None:
-    assert extract_handles("hi @mira and @cairn") == ["mira", "cairn"]
+    assert extract_handles("hi @agent-1 and @agent-2") == ["agent-1", "agent-2"]
 
 
 def test_extract_handles_dedups_in_order() -> None:
-    assert extract_handles("@mira @cairn @mira") == ["mira", "cairn"]
+    assert extract_handles("@agent-1 @agent-2 @agent-1") == ["agent-1", "agent-2"]
 
 
 def test_extract_handles_skips_email() -> None:
@@ -38,36 +38,36 @@ def test_extract_handles_picks_up_broadcast_tokens() -> None:
 def test_at_channel_expands_to_all_members() -> None:
     out = expand_mentions(
         "fyi @channel",
-        channel_member_handles=["mira", "cairn", "hearth", "lux"],
+        channel_member_handles=["agent-1", "agent-2", "assistant", "agent-4"],
     )
-    assert set(out) == {"mira", "cairn", "hearth", "lux"}
+    assert set(out) == {"agent-1", "agent-2", "assistant", "agent-4"}
 
 
 def test_at_everyone_is_alias_for_at_channel() -> None:
     out = expand_mentions(
         "fyi @everyone",
-        channel_member_handles=["mira", "cairn"],
+        channel_member_handles=["agent-1", "agent-2"],
     )
-    assert set(out) == {"mira", "cairn"}
+    assert set(out) == {"agent-1", "agent-2"}
 
 
 def test_broadcast_excludes_sender() -> None:
     out = expand_mentions(
         "fyi @channel",
-        channel_member_handles=["mira", "cairn", "hearth"],
-        sender_handle="hearth",
+        channel_member_handles=["agent-1", "agent-2", "assistant"],
+        sender_handle="assistant",
     )
-    assert out == ["mira", "cairn"]
-    assert "hearth" not in out
+    assert out == ["agent-1", "agent-2"]
+    assert "assistant" not in out
 
 
 def test_broadcast_with_sender_unspecified_keeps_all() -> None:
     # When sender_handle is None (e.g. server-internal post), don't filter.
     out = expand_mentions(
         "fyi @channel",
-        channel_member_handles=["mira", "cairn", "hearth"],
+        channel_member_handles=["agent-1", "agent-2", "assistant"],
     )
-    assert set(out) == {"mira", "cairn", "hearth"}
+    assert set(out) == {"agent-1", "agent-2", "assistant"}
 
 
 # --- Named aliases ------------------------------------------------------
@@ -75,22 +75,22 @@ def test_broadcast_with_sender_unspecified_keeps_all() -> None:
 
 def test_named_alias_expands_to_curated_list() -> None:
     out = expand_mentions(
-        "@family — heads up",
-        channel_member_handles=["mira", "cairn", "hearth", "lux", "guest1", "guest2"],
-        named_aliases={"family": ["mira", "cairn", "hearth", "lux"]},
+        "@team — heads up",
+        channel_member_handles=["agent-1", "agent-2", "assistant", "agent-4", "guest1", "guest2"],
+        named_aliases={"team": ["agent-1", "agent-2", "assistant", "agent-4"]},
     )
-    assert set(out) == {"mira", "cairn", "hearth", "lux"}
+    assert set(out) == {"agent-1", "agent-2", "assistant", "agent-4"}
     assert "guest1" not in out  # Channel has more members than the alias.
 
 
 def test_named_alias_excludes_sender() -> None:
     out = expand_mentions(
-        "@family — quick note",
-        channel_member_handles=["mira", "cairn", "hearth", "lux"],
-        named_aliases={"family": ["mira", "cairn", "hearth", "lux"]},
-        sender_handle="lux",
+        "@team — quick note",
+        channel_member_handles=["agent-1", "agent-2", "assistant", "agent-4"],
+        named_aliases={"team": ["agent-1", "agent-2", "assistant", "agent-4"]},
+        sender_handle="agent-4",
     )
-    assert out == ["mira", "cairn", "hearth"]
+    assert out == ["agent-1", "agent-2", "assistant"]
 
 
 def test_unknown_alias_passes_through_unchanged() -> None:
@@ -98,8 +98,8 @@ def test_unknown_alias_passes_through_unchanged() -> None:
     # treat it as an explicit handle and let DB resolution handle it.
     out = expand_mentions(
         "@nonexistent ping",
-        channel_member_handles=["mira"],
-        named_aliases={"family": ["mira"]},
+        channel_member_handles=["agent-1"],
+        named_aliases={"team": ["agent-1"]},
     )
     assert out == ["nonexistent"]
 
@@ -109,47 +109,47 @@ def test_unknown_alias_passes_through_unchanged() -> None:
 
 def test_explicit_plus_broadcast_unioned() -> None:
     out = expand_mentions(
-        "@cairn — and also @channel",
-        channel_member_handles=["mira", "cairn", "hearth"],
-        sender_handle="lux",
+        "@agent-2 — and also @channel",
+        channel_member_handles=["agent-1", "agent-2", "assistant"],
+        sender_handle="agent-4",
     )
-    # cairn appears explicitly first, then expanded from @channel (dedup'd).
-    # mira, hearth come from @channel expansion.
-    assert out[0] == "cairn"
-    assert set(out) == {"cairn", "mira", "hearth"}
+    # agent-2 appears explicitly first, then expanded from @channel (dedup'd).
+    # agent-1, assistant come from @channel expansion.
+    assert out[0] == "agent-2"
+    assert set(out) == {"agent-2", "agent-1", "assistant"}
 
 
 def test_order_preserved_explicit_before_alias() -> None:
     out = expand_mentions(
-        "@cairn @family ack",
-        channel_member_handles=["mira", "cairn", "hearth", "lux"],
-        named_aliases={"family": ["mira", "cairn", "hearth", "lux"]},
-        sender_handle="lux",
+        "@agent-2 @team ack",
+        channel_member_handles=["agent-1", "agent-2", "assistant", "agent-4"],
+        named_aliases={"team": ["agent-1", "agent-2", "assistant", "agent-4"]},
+        sender_handle="agent-4",
     )
-    # cairn (explicit) appears first, then alias expansion in order.
-    assert out[0] == "cairn"
-    # cairn should NOT appear twice (dedup).
-    assert out.count("cairn") == 1
-    assert set(out) == {"cairn", "mira", "hearth"}
+    # agent-2 (explicit) appears first, then alias expansion in order.
+    assert out[0] == "agent-2"
+    # agent-2 should NOT appear twice (dedup).
+    assert out.count("agent-2") == 1
+    assert set(out) == {"agent-2", "agent-1", "assistant"}
 
 
 def test_sender_explicit_self_mention_still_kept() -> None:
     # Sender exclusion only applies to broadcast/alias expansion. If you
     # genuinely type your own handle, that's intentional — keep it.
     out = expand_mentions(
-        "@hearth note to self",
-        channel_member_handles=["mira", "cairn", "hearth"],
-        sender_handle="hearth",
+        "@assistant note to self",
+        channel_member_handles=["agent-1", "agent-2", "assistant"],
+        sender_handle="assistant",
     )
-    assert out == ["hearth"]
+    assert out == ["assistant"]
 
 
 def test_case_insensitive_handles() -> None:
     out = expand_mentions(
-        "@MIRA",
-        channel_member_handles=["Mira"],
+        "@AGENT-1",
+        channel_member_handles=["Agent-1"],
     )
-    assert out == ["mira"]
+    assert out == ["agent-1"]
 
 
 def test_broadcast_tokens_constant_is_lowercased() -> None:
@@ -160,8 +160,8 @@ def test_broadcast_tokens_constant_is_lowercased() -> None:
 
 
 def test_empty_body_returns_empty() -> None:
-    assert expand_mentions("", channel_member_handles=["mira"]) == []
+    assert expand_mentions("", channel_member_handles=["agent-1"]) == []
 
 
 def test_no_mentions_returns_empty() -> None:
-    assert expand_mentions("just text", channel_member_handles=["mira"]) == []
+    assert expand_mentions("just text", channel_member_handles=["agent-1"]) == []
