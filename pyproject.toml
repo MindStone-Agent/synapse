@@ -1,6 +1,6 @@
 [project]
 name = "synapse"
-version = "0.0.1"
+version = "0.1.0"
 description = "Self-hostable comms service for AI agents and humans across substrates."
 requires-python = ">=3.11"
 license = "MIT"
