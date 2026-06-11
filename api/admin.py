@@ -198,6 +198,89 @@ def cmd_issue_token(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_onboard_agent(args: argparse.Namespace) -> int:
+    """One-shot agent onboarding: create the account (if needed), join each
+    channel, and issue a token whose scopes are auto-built from those channels.
+
+    Collapses the add-account -> add-member(xN) -> issue-token sequence — and the
+    hand-built `channel:<slug>:read,channel:<slug>:post` scope strings — into a
+    single command, keeping membership and token scope in lockstep by construction
+    (the two-gate mismatch that bites first-time onboarders).
+
+    Re-runnable: an existing account or membership is reused rather than erroring,
+    so re-running with a fuller --channels list grants the new channels and issues
+    a fresh token covering all of them.
+    """
+    handle = args.handle.lower()
+    channels = [c.strip().lower() for c in args.channels.split(",") if c.strip()]
+    if not channels:
+        raise SystemExit("--channels must be a non-empty comma-separated list of slugs")
+
+    verbs = ["read"] if args.read_only else ["read", "post"]
+    member_role = "read_only" if args.read_only else "member"
+
+    with SessionFactory() as session:
+        # Resolve every channel up front so a bad slug fails before any writes.
+        resolved = [_channel_by_slug(session, slug) for slug in channels]
+
+        acc = session.execute(
+            select(Account).where(Account.handle == handle)
+        ).scalar_one_or_none()
+        account_created = False
+        if acc is None:
+            acc = Account(
+                kind="agent",
+                handle=handle,
+                display_name=args.display_name or handle,
+            )
+            session.add(acc)
+            session.flush()  # need acc.id for memberships + token
+            account_created = True
+        elif acc.kind != "agent":
+            raise SystemExit(f"{handle!r} exists but is not an agent (kind={acc.kind})")
+
+        joined: list[str] = []
+        already: list[str] = []
+        scopes: list[str] = []
+        for ch in resolved:
+            existing = session.get(ChannelMembership, (acc.id, ch.id))
+            if existing is None:
+                session.add(
+                    ChannelMembership(
+                        account_id=acc.id, channel_id=ch.id, role=member_role
+                    )
+                )
+                joined.append(ch.slug)
+            else:
+                already.append(f"{ch.slug}({existing.role})")
+            scopes.extend(f"channel:{ch.slug}:{verb}" for verb in verbs)
+
+        raw = generate_token()
+        session.add(
+            AgentToken(account_id=acc.id, token_hash=sha256_hash(raw), scopes=scopes)
+        )
+        session.commit()
+
+        _print(
+            {
+                "handle": acc.handle,
+                "account_created": account_created,
+                "channels_joined": joined,
+                "channels_already_member": already,
+                "token_scopes": scopes,
+                "token": raw,
+                "_warning": "This is the only time the raw token is shown. Store it now.",
+                "_next": (
+                    "Wire the client on the agent's box with this token. MS4CC "
+                    "reference client: `/synapse-setup` (or `python -m "
+                    "integrations.synapse.cli setup`) — base_url=<this server>, "
+                    f"handle={acc.handle}, channels={','.join(channels)}."
+                ),
+            }
+        )
+    return 0
+
+
 def cmd_set_push(args: argparse.Namespace) -> int:
     """Enable opt-in @-mention push for an account.
 
@@ -392,6 +475,24 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Comma-separated, e.g. 'channel:team-ops:read,channel:team-ops:post'",
     )
     sp.set_defaults(fn=cmd_issue_token)
+
+    sp = sub.add_parser(
+        "onboard-agent",
+        help="One-shot: create an agent + join channels + issue a scoped token",
+    )
+    sp.add_argument("--handle", required=True, help="Agent handle")
+    sp.add_argument("--display-name")
+    sp.add_argument(
+        "--channels",
+        required=True,
+        help="Comma-separated channel slugs to join + scope the token for",
+    )
+    sp.add_argument(
+        "--read-only",
+        action="store_true",
+        help="Grant read-only (read scope + read_only membership); default is read+post",
+    )
+    sp.set_defaults(fn=cmd_onboard_agent)
 
     sp = sub.add_parser("revoke-token", help="Revoke an agent token")
     sp.add_argument("--id", required=True)
