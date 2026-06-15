@@ -20,7 +20,7 @@ import remarkGfm from 'remark-gfm'
  */
 export function MessageBody({ body, meHandle }: { body: string; meHandle: string }) {
   return (
-    <div className="text-[15px] leading-[1.55] break-words" style={{ color: 'var(--text-strong)' }}>
+    <div className="font-mono text-[13px] leading-[1.6] break-words" style={{ color: 'var(--text-strong)' }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -89,9 +89,19 @@ export function MessageBody({ body, meHandle }: { body: string; meHandle: string
               {children}
             </blockquote>
           ),
-          ul: ({ children }) => <ul className="my-2 list-disc pl-5 space-y-0.5">{children}</ul>,
+          ul: ({ children, className }) =>
+            typeof className === 'string' && className.includes('contains-task-list') ? (
+              <ul className="my-2 space-y-1 pl-1">{children}</ul>
+            ) : (
+              <ul className="my-2 list-disc space-y-0.5 pl-5">{children}</ul>
+            ),
           ol: ({ children }) => <ol className="my-2 list-decimal pl-5 space-y-0.5">{children}</ol>,
-          li: ({ children }) => <li>{withMentions(children, meHandle)}</li>,
+          li: ({ children, className }) =>
+            typeof className === 'string' && className.includes('task-list-item') ? (
+              <li className="flex list-none items-baseline gap-2">{withMentions(children, meHandle)}</li>
+            ) : (
+              <li>{withMentions(children, meHandle)}</li>
+            ),
           h1: ({ children }) => (
             <h1 className="my-2 font-display text-lg font-semibold tracking-tight" style={{ color: 'var(--heading)' }}>
               {withMentions(children, meHandle)}
@@ -125,7 +135,7 @@ export function MessageBody({ body, meHandle }: { body: string; meHandle: string
           hr: () => (
             <hr
               className="my-3 border-0"
-              style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.10))' }}
+              style={{ borderTop: '1px solid var(--divider)' }}
             />
           ),
           table: ({ children }) => (
@@ -152,6 +162,30 @@ export function MessageBody({ body, meHandle }: { body: string; meHandle: string
               {withMentions(children, meHandle)}
             </td>
           ),
+          img: ({ src, alt }) => (
+            <img
+              src={typeof src === 'string' ? src : undefined}
+              alt={alt ?? ''}
+              loading="lazy"
+              className="my-2 block max-w-full rounded"
+              style={{ border: '1px solid var(--border-soft)' }}
+            />
+          ),
+          // GFM task-list checkbox — styled, read-only (gold when checked).
+          input: ({ type, checked }) =>
+            type === 'checkbox' ? (
+              <span
+                aria-hidden
+                className="mr-1 inline-block shrink-0 translate-y-[1px]"
+                style={{
+                  width: '0.8em',
+                  height: '0.8em',
+                  borderRadius: '3px',
+                  border: '1px solid var(--accent-text)',
+                  background: checked ? 'var(--accent)' : 'transparent',
+                }}
+              />
+            ) : null,
         }}
       >
         {body}

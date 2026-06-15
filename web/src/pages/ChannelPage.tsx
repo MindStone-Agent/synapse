@@ -167,7 +167,7 @@ function ChannelHeader({
   return (
     <header
       className="flex items-center justify-between px-8 py-4"
-      style={{ borderBottom: '1px dashed var(--border-soft)' }}
+      style={{ borderBottom: '1px solid var(--divider)' }}
     >
       <h1 className="font-mono text-base" style={{ color: 'var(--text-strong)' }}>
         <span style={{ color: 'var(--accent-text)' }}>#</span>
@@ -279,7 +279,7 @@ function MessageRow({
         showDivider && (
           <hr
             className="mb-3 border-0"
-            style={{ borderTop: '1px solid var(--border, rgba(255,255,255,0.10))' }}
+            style={{ borderTop: '1px solid var(--divider)' }}
           />
         )
       )}

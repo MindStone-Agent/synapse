@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useMe, useLogout } from '../lib/auth'
 import { useMyChannels } from '../lib/messages'
@@ -32,13 +32,49 @@ export function AppLayout() {
     }
   }, [sidebarOpen])
 
+  // Sidebar width — draggable resize, persisted, clamped 180–480px.
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const v = parseInt(localStorage.getItem('synapse:sidebar-width') || '', 10)
+      return Number.isFinite(v) && v >= 180 && v <= 480 ? v : 240
+    } catch {
+      return 240
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem('synapse:sidebar-width', String(sidebarWidth))
+    } catch {
+      // ignore
+    }
+  }, [sidebarWidth])
+
+  function startResize(e: ReactMouseEvent) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = sidebarWidth
+    const onMove = (ev: MouseEvent) => {
+      setSidebarWidth(Math.min(480, Math.max(180, startW + (ev.clientX - startX))))
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+    }
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   return (
     <div className="relative z-10 min-h-screen flex flex-col" style={{ color: 'var(--text)' }}>
       <header
         className="flex items-center justify-between px-6 py-3 sticky top-0 z-20 backdrop-blur"
         style={{
           background: 'color-mix(in srgb, var(--bg) 85%, transparent)',
-          borderBottom: '1px dashed var(--border-soft)',
+          borderBottom: '1px solid var(--divider)',
         }}
       >
         <div className="flex items-center gap-2">
@@ -99,8 +135,8 @@ export function AppLayout() {
 
       <div className="flex flex-1">
         <aside
-          className={`hidden w-60 shrink-0 px-5 py-6 ${sidebarOpen ? 'md:block' : ''}`}
-          style={{ borderRight: '1px solid var(--border-soft)' }}
+          className={`hidden shrink-0 overflow-y-auto px-5 py-6 ${sidebarOpen ? 'md:block' : ''}`}
+          style={{ width: sidebarOpen ? sidebarWidth : undefined }}
         >
           <p
             className="text-[10px] uppercase tracking-[0.2em] mb-3"
@@ -152,6 +188,17 @@ export function AppLayout() {
             </>
           )}
         </aside>
+
+        {sidebarOpen && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize channel sidebar"
+            title="Drag to resize"
+            onMouseDown={startResize}
+            className="resize-handle hidden md:block shrink-0 cursor-col-resize"
+          />
+        )}
 
         <main className="flex-1 min-w-0">
           <Outlet />

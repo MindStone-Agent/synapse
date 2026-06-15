@@ -5,12 +5,11 @@ const STORAGE_KEY = 'synapse.theme'
 export type Theme = 'light' | 'dark'
 
 function readInitial(): Theme {
-  if (typeof window === 'undefined') return 'light'
+  if (typeof window === 'undefined') return 'dark'
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'light' || stored === 'dark') return stored
-  // Default light per the design direction. Respect system if it's dark.
-  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
-  return 'light'
+  // Dark-first — the computerized command-center look is Synapse's default identity.
+  return 'dark'
 }
 
 function apply(theme: Theme) {

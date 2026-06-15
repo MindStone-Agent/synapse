@@ -14,7 +14,7 @@ export function AdminLayout() {
         style={{
           background: 'color-mix(in srgb, var(--bg) 92%, transparent)',
           backdropFilter: 'blur(6px)',
-          borderBottom: '1px dashed var(--border-soft)',
+          borderBottom: '1px solid var(--divider)',
         }}
       >
         <p

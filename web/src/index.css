@@ -1,7 +1,6 @@
 /* Self-host font weights/styles we actually use. Variable fonts give
  * us the full range from a single file each. */
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/fraunces";
 @import "@fontsource-variable/jetbrains-mono";
 
 @import "./styles/tokens.css";
@@ -44,7 +43,7 @@
   --color-error:   var(--error);
 
   --font-sans:    'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-display: 'JetBrains Mono Variable', ui-monospace, monospace;
   --font-mono:    'JetBrains Mono Variable', ui-monospace, monospace;
 
   --radius-card:  8px;
@@ -80,13 +79,18 @@ body {
   letter-spacing: -0.005em;
 }
 
-/* Editorial-flavor headings */
-h1, h2, h3, .display {
-  font-family: 'Fraunces Variable', ui-serif, Georgia, serif;
+/* Computerized headings — clean grotesk, tight tracking (no serif). */
+h1, h2, h3 {
+  font-family: var(--font-sans);
   color: var(--heading);
-  font-feature-settings: 'ss01' 1;
-  font-optical-sizing: auto;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+/* .display = the technical/monospace voice for branded chrome + readouts. */
+.display {
+  font-family: var(--font-mono);
+  color: var(--heading);
+  letter-spacing: -0.01em;
 }
 
 /* Selection + focus */
@@ -100,16 +104,42 @@ h1, h2, h3, .display {
   border-radius: var(--radius-btn);
 }
 
-/* Subtle film-grain backdrop — light, not noisy. Only renders on the body. */
+/* Ambient command-center glow — warm gold depth behind everything (Cortex-style).
+ * Two low-opacity radials on opposite corners give the dark UI an instrument-panel
+ * atmosphere instead of a flat page. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: var(--grain-opacity);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-size: 200px 200px;
+  background:
+    radial-gradient(58% 48% at 0% 0%, color-mix(in srgb, var(--accent) 13%, transparent) 0%, transparent 60%),
+    radial-gradient(55% 45% at 100% 100%, color-mix(in srgb, var(--gold-300) 9%, transparent) 0%, transparent 62%);
+}
+
+/* Draggable sidebar resize handle — invisible hit-area with a hairline that
+ * brightens to gold on hover/drag (matches the gold-divider language). */
+.resize-handle {
+  width: 7px;
+  position: relative;
+  background: transparent;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: var(--border-soft);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+.resize-handle:hover::after,
+.resize-handle:active::after {
+  background: var(--accent);
+  width: 2px;
 }
 
 /* Decorative gold separator: <hr class="rule" /> or .rule on a div */

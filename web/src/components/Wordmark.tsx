@@ -18,7 +18,7 @@ const sizeMap = {
 export function Wordmark({ size = 'md', withGlow = false }: Props) {
   return (
     <span
-      className={`relative inline-flex items-baseline font-display font-medium tracking-tight ${sizeMap[size]}`}
+      className={`relative inline-flex items-baseline font-mono font-semibold tracking-tight ${sizeMap[size]}`}
       style={{ color: 'var(--heading)' }}
     >
       {withGlow && (
