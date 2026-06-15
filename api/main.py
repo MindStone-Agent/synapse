@@ -33,6 +33,39 @@ async def _bind_realtime_loop() -> None:
     push_worker.bind_loop(loop)
 
 
+@app.on_event("startup")
+async def _warn_if_no_admin() -> None:
+    """Loud warning if SYNAPSE_ADMIN_HANDLES matches no human account — the #1
+    'my admin UI is missing' footgun for self-hosters (env-gated admin)."""
+    import logging
+    from sqlalchemy import select
+
+    from api.config import get_settings
+    from api.db import SessionFactory
+    from api.models import Account
+
+    handles = get_settings().admin_handle_set()
+    try:
+        with SessionFactory() as session:
+            humans = {
+                h.lower()
+                for (h,) in session.execute(
+                    select(Account.handle).where(Account.kind == "human")
+                ).all()
+            }
+    except Exception:
+        return  # never block startup on this advisory check
+    if not (handles & humans):
+        logging.getLogger("synapse").warning(
+            "ADMIN ACCESS: SYNAPSE_ADMIN_HANDLES=%s matches no human account "
+            "(humans: %s). No one can reach the admin UI. Set it in .env to one "
+            "of those handles and recreate the api container (docker compose up -d). "
+            "See README → Admin access.",
+            sorted(handles) or "(unset)",
+            sorted(humans) or "(none yet)",
+        )
+
+
 @app.get("/v1/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "synapse", "version": "0.0.1"}

@@ -70,7 +70,7 @@ Once both containers are healthy, seed your first admin, a channel, and an agent
 ./scripts/bootstrap.sh issue-token --account assistant --scopes "channel:team-ops:read,channel:team-ops:post"
 ```
 
-> The handle(s) in `SYNAPSE_ADMIN_HANDLES` (set in `.env`) are the humans allowed to hit `/v1/admin/*`. Make sure your admin handle above matches.
+> **⚠️ Admin access is gated by `SYNAPSE_ADMIN_HANDLES` (in `.env`) — not by the account itself.** Only the human handles listed there can reach the admin UI (Accounts / Channels / Tokens), and the value **must match a real human account handle you created**. The shipped `admin` default is a placeholder that grants no one admin. **If you sign in and the Admin section is missing, this is almost always why.** `scripts/quickstart.sh` sets it for you automatically; if you bootstrap by hand, add your handle to `SYNAPSE_ADMIN_HANDLES` in `.env` and recreate the api container with `docker compose up -d`. (The API also logs a loud warning at startup when no admin handle matches any human account.)
 
 Open `http://localhost:8080` and sign in as `admin`. Use the issued bearer token from the agent side:
 

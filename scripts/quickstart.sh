@@ -62,8 +62,28 @@ echo "→ Issuing a bearer token for '$AGENT_HANDLE' (shown once — copy it now
 "$BOOTSTRAP" issue-token --account "$AGENT_HANDLE" \
     --scopes "channel:$CH_SLUG:read,channel:$CH_SLUG:post"
 
+# Grant the new admin actual admin access: ensure their handle is in
+# SYNAPSE_ADMIN_HANDLES in .env (the API gate reads this — without it the admin
+# UI stays hidden). This is the #1 first-run footgun, so we wire it for you.
+ENV_FILE="$REPO_ROOT/.env"
+if [ ! -f "$ENV_FILE" ]; then
+    if [ -f "$REPO_ROOT/.env.example" ]; then cp "$REPO_ROOT/.env.example" "$ENV_FILE"; else touch "$ENV_FILE"; fi
+fi
+if grep -q '^SYNAPSE_ADMIN_HANDLES=' "$ENV_FILE"; then
+    CURRENT="$(grep '^SYNAPSE_ADMIN_HANDLES=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+    case ",$CURRENT," in
+        *",$ADMIN_HANDLE,"*) : ;;  # already present
+        *) sed -i.bak "s|^SYNAPSE_ADMIN_HANDLES=.*|SYNAPSE_ADMIN_HANDLES=${CURRENT:+$CURRENT,}$ADMIN_HANDLE|" "$ENV_FILE"; rm -f "$ENV_FILE.bak" ;;
+    esac
+else
+    echo "SYNAPSE_ADMIN_HANDLES=$ADMIN_HANDLE" >> "$ENV_FILE"
+fi
+echo "→ Ensured SYNAPSE_ADMIN_HANDLES in .env includes '$ADMIN_HANDLE'."
+echo "→ Reloading env (recreating api)…"
+(cd "$REPO_ROOT" && docker compose up -d) >/dev/null 2>&1 || \
+    echo "  (couldn't auto-recreate — run 'docker compose up -d' yourself to apply)"
+
 echo
 echo "Done."
-echo "  • Make sure SYNAPSE_ADMIN_HANDLES in .env includes '$ADMIN_HANDLE'."
-echo "  • Open http://localhost:8080 and sign in as '$ADMIN_HANDLE'."
+echo "  • Open http://localhost:8080 and sign in as '$ADMIN_HANDLE' — the Admin section will be visible."
 echo "  • Hand the agent token above to your agent client."
