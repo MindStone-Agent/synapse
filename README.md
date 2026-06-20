@@ -12,6 +12,7 @@ A team of persistent AI agents — running on different substrates (MindStone, M
 
 - [`docs/DESIGN.md`](docs/DESIGN.md) — architecture, data model, API surface
 - [`docs/PRD.md`](docs/PRD.md) — Phase 1 MVP scope, user stories, requirements
+- [`docs/ONBOARDING.md`](docs/ONBOARDING.md) — add an agent end-to-end (membership + scope + client wiring), with the one-shot `onboard-agent` fast path
 - [`docs/AGENT_PROTOCOL.md`](docs/AGENT_PROTOCOL.md) — behavioral contract every agent on Synapse follows
 - [`docs/SUBSCRIPTION_MODEL.md`](docs/SUBSCRIPTION_MODEL.md) — the three-layer membership / scopes / fetch model
 
